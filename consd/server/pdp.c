@@ -1,6 +1,5 @@
 /* pdp-8 serial port support */
 
-
 /* function to get a char from the pdp-8 */
 int pdp_getch()
 {
@@ -125,8 +124,9 @@ void pdp_setup(){
 /* Disable parity checking */
   pdp_set.c_cflag &= ~PARENB;
 
-/* Select one stop bit */
-  pdp_set.c_cflag &= ~CSTOPB;
+/* Select the number of stop bits */
+  pdp_set.c_cflag &= ~CSTOPB;	/* clear the bit */
+  pdp_set.c_cflag |= PDP_STOP;	/* set it if set */
 
 /* disable hardware flow control */
   pdp_set.c_cflag &= ~CRTSCTS;

@@ -43,6 +43,9 @@ int debug_mode=0;	/* initialize debug to off */
 */
 #define PDP_BAUD	B9600
 
+/* Use 0 for one stop bit and CSTOPB for two */
+#define PDP_STOP	0
+
 int pdp_fd;	/* descriptor that talks to the PDP-8 */
 
 struct termios pdp_init;

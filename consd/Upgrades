@@ -11,10 +11,10 @@ Add support for another serial port to connect to the real console
 hardware.  The server can do speed shifting as well as correct for the
 parity and number of bits as well.
 
-Add support for other simh device images.  RX01, DECTape, RL01 and RL02
-are examples that come to mind.  This will most likely require a custom
-sys handler for each one as the position of the additional entry points
-is dependent on the device.
+Add support for other simh device images.  RX01,  RL01 and RL02 are
+examples that come to mind.  This will most likely require a custom sys
+handler for each one as the position of the additional entry points is
+dependent on the device.
 
 Add control c checks to the server while processing handler requests.
 

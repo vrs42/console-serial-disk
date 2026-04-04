@@ -293,3 +293,27 @@ Change log:
 
 20230707 Documentation
 	Updated Readme for upload to Github.
+
+20230708 Server
+	Vince found a bug in disk.c which was causing him a segmentation
+	fault when it was closing the file.  Fixed!
+	Added a define for stop bits PDP_STOP.
+
+20230708 Documentation
+	Added documentation for the PDP_STOP definition to Readme and
+	Config.
+
+20230709 Server
+	Added the code to disk.c to deal with the DECtape image.  Has
+	not been tested.
+
+20230709 Documentation
+	Poked at a lot of little bits.
+
+20230710 Server
+	Changed the F1 key message to more accurately reflect what it is
+	doing.
+	Ran BUILD on the csd0.img and inserted DTA.  Then tested that it
+	can read and write DECtape images.  Also verified that if you
+	create a zero length image using touh tc0X.img that you can create
+	an empty image using PIP to zero the directory with DTA:/Z<=1

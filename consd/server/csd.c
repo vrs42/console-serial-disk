@@ -1,6 +1,6 @@
 /* Console port Serial Disk */
 
-#define VERSION	"1.0 (Release)"
+#define VERSION	"1.1 (Release)"
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -12,7 +12,12 @@
 
 
 #define PDP_SP		"/dev/ttyUSB0"
+
 #define PDP_BAUD	B19200
+
+/* use CSTOPB for 2 stop bits and 0 for one */
+#define PDP_STOP	0
+
 
 /* testing defines */
 /* #define TESTLOOPBACK */
@@ -331,7 +336,7 @@ int txt_ch;	/* character to be sent text mode */
   for( i=0; i<CSD_MAX; i++ ){
     sprintf( csd_name[i], "csd%d.img", i );
   }
-  strcpy( tc_name, "dta0.img" );
+  strcpy( tc_name, "tc0X.img" );
   strcpy( rk_name, "rk05.img" );
 
 /* process the command line */
@@ -389,7 +394,7 @@ int txt_ch;	/* character to be sent text mode */
             do_boot();
             break;
           case KEY_F1:		/* time to exit */
-            fprintf( stderr, "SERVER: F1 key pressed, updating system disk image and exiting\r\n" );
+            fprintf( stderr, "SERVER: F1 key pressed, updating device images and exiting\r\n" );
             disk_close();
             tty_reset();
             pdp_reset();

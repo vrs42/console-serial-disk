@@ -13,11 +13,12 @@ requirements:
     I used a Raspberry Pi 3B+ and a Raspberry Pi 400 during development.
     This is way overkill for what is needed.
     
-Configuration is very basic needing two lines changed in server/csd.c
-file.  Those two lines are near the front and are:
+Configuration is very basic needing three lines changed in server/csd.c
+file.  Those three lines are near the front and are:
 
 #define PDP_SP		"/dev/tty/ttyUSB0"
 #define PDP_BAUD	B9600
+#define PDP_STOP	0
 
 PDP_SP (PDP Serial Port) will need to be defined.  I used a USB serial 
 port dongle.  If you use the hardware bits and a level converter in your
@@ -57,8 +58,11 @@ These are the accepted baud rate values.
 
 It is not guaranteed that your hardware can support all of them.
 
-Change those two lines in csd.c to match your config and run make to build the
-server.
+PDP_STOP is used to specify the number of stop bits.  Specify the value of 0
+for one stop bit and the value CSTOPB for two stop bits.  Yeah, it is obscure.
+
+Change those three lines in csd.c to match your config and run make to build
+the server.
 
 When I run the server I
 

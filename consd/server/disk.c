@@ -228,11 +228,12 @@ int patch_bt;	/* flag to indicate if the boot block needs to be patched with the
 
   /* open the rk05 image */
   if( debug_mode ){
-    fprintf( stderr, "SERVER: Opening RK0 image %s\r\n", rk_name );
+    fprintf( stderr, "SERVER: Opening RK05 image %s\r\n", rk_name );
   }
   rk_stream=fopen( rk_name, "r+" );
   if( rk_stream==NULL ){
-    fprintf( stderr, "SERVER: can't open RK0 image %s for read/write\r\n", rk_name );
+    if( debug_mode )
+      fprintf( stderr, "SERVER: can't open RK05 image %s for read/write\r\n", rk_name );
   } else {
     /* read the image into memory */
     if( debug_mode ){
@@ -256,6 +257,44 @@ int patch_bt;	/* flag to indicate if the boot block needs to be patched with the
             k=0;
           }
           rk_dsk[half][blk][i]= (k<<8) | j;		/* assemble the word */
+        }
+      }
+    }
+  }
+
+  /* open the DECtape image */
+  if( debug_mode ){
+    fprintf( stderr, "SERVER: Opening DECTape image %s\r\n", tc_name );
+  }
+  tc_stream=fopen( tc_name, "r+" );
+  if( tc_stream==NULL ){
+    if( debug_mode )
+      fprintf( stderr, "SERVER: can't open DECtape image %s for read/write\r\n", tc_name );
+  } else {
+    /* read the image into memory */
+    if( debug_mode ){
+      fprintf( stderr, "SERVER: Reading the DECtape image into memory.\r\n" );
+    }
+    for( blk=0; blk<TC_BLKCNT; blk++ ){	/* read through all the blocks */
+      for( i=0; i<256; i++ ){		/* fetch all the words in each block */
+        j=fgetc( tc_stream );		/* get the first byte making up the word */
+        if( j==EOF ) j=0;			/* handle short images */
+        if( (j<0) || (j>0377) ){	/* we have a problem */
+          fprintf( stderr, "SERVER: disk_open invalid image Blk=%04o wrd=%03o j=%04o\r\n",
+            blk, i, j );
+          j=0;
+        }
+        k=fgetc( tc_stream );		/* get the second byte making up the word */
+        if( k==EOF ) k=0;			/* handle short images */
+        if( (k<0) || (k>017) ){	/* we have a problem */
+          fprintf( stderr, "SERVER: disk_open invalid image Blk=%04o wrd=%03o k=%02o\r\n",
+            blk, i, k );
+          k=0;
+        }
+        tc_dsk[blk][i]= (k<<8) | j;		/* assemble the word */
+        if( (i==127) || (i==255) ) {	/* skip word 129 of each record */
+          fgetc( tc_stream );		/* just ignore it for now */
+          fgetc( tc_stream );		/* No good way to handle this */
         }
       }
     }
@@ -347,7 +386,7 @@ int blk;	/* block index */
 int i,j,k;	/* indexes and temps */
 
   /* do the CSD images */
-  for( d=0; d<CSD_BLKCNT; d++ ){
+  for( d=0; d<CSD_MAX; d++ ){
     if( csd_stream[d] != NULL ){
       rewind( csd_stream[d] );
       if( debug_mode ){
@@ -383,5 +422,28 @@ int i,j,k;	/* indexes and temps */
   }
 
   /* do the DECtape image */
+  if( tc_stream != NULL ){
+    rewind( tc_stream );
+    if( debug_mode ){
+      fprintf( stderr, "SERVER: Writing out the DECtape image.\r\n" );
+    }
+    for( blk=0; blk<TC_BLKCNT; blk++ ){	/* all the blocks */
+      for( i=0; i<128; i++ ){		/* all the words in each block */
+        j=tc_dsk[blk][i];		/* get the word */
+        fputc( j&0377, tc_stream );
+        fputc( (j>>8)&0377, tc_stream );
+      }
+      fputc( 0, tc_stream );		/* write the last word on the record */
+      fputc( 0, tc_stream );
+      for( i=128; i<256; i++ ){		/* all the words in each block */
+        j=tc_dsk[blk][i];		/* get the word */
+        fputc( j&0377, tc_stream );
+        fputc( (j>>8)&0377, tc_stream );
+      }
+      fputc( 0, tc_stream );		/* write the last word on the record */
+      fputc( 0, tc_stream );
+    }
+    fclose( tc_stream );
+  }
 
 }

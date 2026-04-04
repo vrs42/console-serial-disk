@@ -67,3 +67,34 @@ with the CSD version.
 This probably goes back to the fact that OS/8 maintained compatibility
 with PS/8 file systems.  PS/8 did not have BUILD so the tables necessary
 to know this stuff were not stored anywhere.
+
+
+When making my initial csd0 image I found out that BUILD does something
+both clever and unexpected.  When it copies the system image from the
+running system to the new system disk it does so with the following
+algorithm:
+
+1) Read a block from SYS:
+2) Copy last page of Field 0 to a temporary page.
+3) Install the new SYS handler in the last page of Field 0.
+4) Write the block read in step 1 to SYS:
+5) Copy back the running SYS handler saved in step 2.
+
+This is repeated for every block that needs to be copied.
+
+This was a problem for me since the csd server cannot distinguish
+between devices for the read in step 1 and the write in step 4 since
+they both come from the SYS: entry point at 07607.  I was able to work
+around this by using PIP to copy the system blocks and allowed BUILD
+to think it had worked when in fact all it did was read and then write
+the same block back to the original SYS image.
+
+The downside of this is that BUILD cannot be used to make a bootable
+image on a different device because as far as csd is concerned it is
+writing to the same device as it is reading from.  The only way to fix
+this is to have the handler send a device identifier as part of the
+request.  The problem is that the CONSYS handler has no space to add this
+functionality.  If the CSD1: entry point is removed from CONSYS: this
+only frees up two words and I think it will take at least 3 words.
+Note: This only applies when trying to build a SYS image on a CSD virtual
+device.  If one of the devices is real hardware you should be ok.
