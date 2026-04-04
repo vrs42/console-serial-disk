@@ -1,0 +1,36 @@
+Fix the type ahead issue when characters are typed while the server is
+processing a disk request.
+
+Add a command line option to update the disk image immediatly.
+
+Find a few words in the handler so character device support can be added.
+Support for TTY, HSR and HSP as well as a LPT device are all desirable
+additions.
+
+Add support for another serial port to connect to the real console
+hardware.  The server can do speed shifting as well as correct for the
+parity and number of bits as well.
+
+Add support for other simh device images.  RX01, DECTape, RL01 and RL02
+are examples that come to mind.  This will most likely require a custom
+sys handler for each one as the position of the additional entry points
+is dependent on the device.
+
+Add control c checks to the server while processing handler requests.
+
+Do something more elaborate with configuration.
+
+Have the boot loader measure the serial port speed and patch the handler.
+
+Make the boot loader more general.  Currently it is specific to OS/8.
+
+Non system handler to support anything that makes sense virtually.
+
+Add 2 word to 3 byte and 3 byte to 2 word compression over the 8 bit
+link for non-sys version of the handler.  This will give a 25% speed up.
+
+Add a paranoid mode of operation where the server verifies that the data
+read from the server made it to memory correctly.  A read back check
+which could find problems during initial operation or if correct
+operation of the 8 is suspect.  For disk write operations the data could
+be transferred twice and compared.

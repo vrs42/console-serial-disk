@@ -1,0 +1,69 @@
+During the course of this project I encountered a couple of anomolous
+behaviors with the BUILD and RESORC programs.
+
+BUILD will not let you insert the names of the official supported DEC
+devices into the active system unless the handler name is correct for
+that device.
+
+
+.RUN SYS BUILD
+
+$PRINT
+
+KL8E: *TTY  
+LPSV: *LPT  
+PT8E:  PTP   PTR  
+CSD : *SYS  *CSD0 *CSD1 
+CSDN:  CSD0  CSD1 *CSD2 *CSD3 *RKA  *RKB   DTA0 
+
+DSK=CSD:CSD1
+$INSERT CSDN,DTA0
+DTA0 NOT FOUND
+$
+
+This was the previous version of CONSYS.PA before changing the DTA0 to
+DTA.  DTA0 is clearly there.  For this reason when you mount an RK05 or
+DECtape image on the CSD server the device is referenced as RKA:, RKB:,
+and DTA: instead of RKA0:, RKB0:, and the DTA0: names.  This may cause
+less confusion in the situation where a real RK05 exists on a machine.
+
+And then there is RESORC.  RESORC is supposed to tell you what devices
+are available to a running OS/8 system.  However it uses inside
+knowledge of DEC devices to display some of its information.  User
+defined devices do not show up correctly.  Here is an example.
+
+
+.RESORC /E
+
+96 FILES IN 1530 BLOCKS USING 3 SEGMENTS
+2509 FREE BLOCKS (2 EMPTIES)
+
+#  NAME TYPE MODE SIZ BLK KIND U V ENT USER
+01 SYS   40  RWF      SYS      0 A  07
+02 DSK   40  RWF      SYS      1    41
+03 TTY  TTY  RW       16+ KL8E   E 176
+04 LPT  LPTR W        17  LPSV   C  05
+05 HC    40  RWF      SYS      0 A  07
+06 HD    40  RWF      SYS      1    41
+07 HE    40  RWF      20         A  42
+10 HF    40  RWF      20         A  43
+11 SK   RK8E RWF 3248 20  RK05 0    20
+12 RXA3 RK8E RWF 3248 20  RK05 0    21
+
+FREE DEVICE SLOTS: 05,  FREE BLOCK SLOTS: 05
+OS/8 V3Q
+
+
+Entries 05 through 10 should be displayed as CSD0 through CSD3.  RESORC
+displays its internal table identifiers of HC through HF instead.
+Entries 11 and 12 should be RKA and RKB but because they are trying to
+look like an RK05 it is confused somewhat.  It does know the size of
+the device at 3248 which was what I was going for when I built that
+entry but it thinks the TYPE is RK8E instead of CSD which is what I
+told it.  I don't have a working RK05 to put on the system to test but
+I expect that there could be some problems if a real RK05 is mixed
+with the CSD version.
+
+This probably goes back to the fact that OS/8 maintained compatibility
+with PS/8 file systems.  PS/8 did not have BUILD so the tables necessary
+to know this stuff were not stored anywhere.

@@ -1,0 +1,147 @@
+
+
+
+      / CONSOLE SERIAL DISK OS/8 HELP BOOT                                Page 1
+
+
+    1              / CONSOLE SERIAL DISK OS/8 HELP BOOT
+    2              /
+    3              /VER 0.1  20220428 HAD AN IDEA TO SIMPLIFY AND MAKE IT LOOK MORE LIKE THE
+    4              /         REGULAR BOOT2 PROGRAMS EMBEDDED IN THE BOOT BLOCK.
+    5              /
+    6              / (C) COPYRIGHT 2022 BY DOUG INGRAHAM.  NO RIGHTS RESERVED.  FEEL FREE TO USE
+    7              / THIS CODE FOR ANYTHING YOU WANT.
+    8              /
+    9              / BOOT2 IS UNUSUAL BECAUSE IT IS LIMITED BY THE CONSTRAINTS OF THE HELP
+   10              / LOADER.  THESE CONSTRAINTS ARE:
+   11              /
+   12              / *  MEMORY REFERENCE INSTRUCTIONS CAN ONLY DIRECTLY ADDRESS MEMORY FROM
+   13              /    000 THROUGH 037.  NO INDIRECT OR CURRENT PAGE REFERENCES!
+   14              / *  IOT'S CAN ONLY ADDRESS DEVICE CODES 0 THROUGH 3.
+   15              / *  FOR THE OPERATE INSTRUCTIONS YOU CAN ONLY GENERATE GROUP 1 AND NOT
+   16              /    ALL ENCODINGS CAN BE USED.  CML, RAR, RAL, RTR, RTL, AND IAC ARE
+   17              /    ALLOWED.  YOU CAN'T SPECIFY CLA, CLL, OR CMA OPERATIONS.
+   18              /
+   19              / FORTUNATELY THIS STILL LEAVES A LOT OF POSSIBILITIES BUT YOU ARE
+   20              / BASICALLY LIMITED TO THE BOTTOM 32 WORDS OF MEMORY AND NO INDIRECTION
+   21              / WHICH ALSO MEANS NO SUBROUTINES BECAUSE THE RETURN REQUIRES
+   22              / INDIRECTION.
+   23              /
+   24              / THE BOOT2 PROGRAM STARTS WHEN THE LOAD OVERWRITES THE FIRST INSTRUCTION
+   25              / OF THE BOOT1 PROGRAM.  THIS WILL BE A JMP PATCH.  BOOT2 WILL READ THE
+   26              / BOOT BLOCK INTO MEMORY STARTING AT ADDRESS 0.  IT WILL READ 256 WORDS
+   27              / AND THEN MOVE THE TWO MEMORY RESIDENT SECTIONS INTO THEIR CORRECT
+   28              / PLACES.  FINALLY IT WILL PERFORM A JMP TO 7605 WHICH STARTS OS/8.
+   29              
+   30              / THE BOOT 2 PROGRAM:
+   31              
+   32              / THE BOOT2 PROGRAM REQUIRES INDIRECTION IN 1 PLACE.  THIS IS THE
+   33              / INDIRECT DEPOSIT THAT STORES THE RECEIVED WORD IN MEMORY.  THE BIT THAT
+   34              / CONTROLS INDIRECTION IS THE 0400 BIT SO ALL WE HAVE TO DO IS CREATE
+   35              / THAT AND ADD IT TO A REGULAR DEPOSIT.  THE CLL RTR;RTR WILL DO THIS
+   36              / NICELY SO WE DO THAT FIRST TO PATCH THE DEPOSIT.
+   37              /
+   38              
+   39              
+   40              
+   41              / WHAT IS EXPECTED OF THE SERVER:
+   42              
+   43              / THE BOOT1 CODE WILL BE TOGGLED IN AND STARTED.  THE SERVER WILL BE TOLD
+   44              / TO SEND PERFORM A BOOT WITH SHIFT F12.  THE SERVER WILL SEND THE BOOT2
+   45              / HELPER CODE AND THEN IT WILL SEND THE BOOT BLOCK.  THE EXTENDED VERSION
+   46              / OF BOOT2 THAT IS FOUND IN THE BOOT RECORD WILL TAKE OVER WHEN ALL 256
+   47              / WORDS HAVE BEEN REVEIVED.
+   48              
+   49              / HERE ARE THE BOOT2 HELP CODES:
+   50              / ADR HLP  INST ASSEMBLY
+
+
+
+      / CONSOLE SERIAL DISK OS/8 HELP BOOT                                Page 2
+
+
+   51              
+   52              
+   53              
+   54              
+   55              
+   56              / THE BOOT2 LOADER:
+   57              
+   58              / A WORD ABOUT THE .-. CONSTRUCT.
+   59              
+   60              / I SAW THIS IN SOME CODE I WAS READING A VERY LONG TIME AGO AND DECIDED
+   61              / TO USE IT LIKE THEY WERE.  AS A PLACEHOLDER FOR SELF MODIFYING CODE OR
+   62              / THE RETURN ADDRESS LOCATION OF A SUBROUTINE.  IT STANDS OUT FROM THE
+   63              / TEXT AROUND IT SO IT CATCHES YOUR EYE AND YOU KNOW SOMETHING
+   64              / INTERESTING IS HAPPENING HERE.  THE CALCULATION IS CURRENT ADDRESS
+   65              / MINUS CURRENT ADDRESS WHICH IS ZERO.
+   66              
+   67              / THE WORD COUNT MUST BE INITIALLY -0400 (07400) BUT THIS IS ONE OF THOSE
+   68              / VALUES THE HELP LOADER CANNOT GENERATE.  HELP SENDS A ZERO BUT THE BOOT
+   69              / BLOCK WILL HAVE THE CORRECT VALUE SO IT IS ALL GOOD.
+   70              
+   71        0000  *0000
+   72 00000  0000  BTWC,   .-.             /WORD COUNT TO TRANSFER (SET TO 7400 BY BOOT RECORD)
+   73 00001  0000  BTCA,   0               /CURRENT ADDRESS TO STORE WORD.  SET TO 1 BY BOOT RECORD
+   74 00002  0000  BTTMP,  .-.             /THIS IS AN INITIAL DONT CARE VALUE.
+   75              
+   76 00003  7032  PATCH,  CML RTR         /BUILD A 0400 INDIRECTION BIT
+   77 00004  7012          RTR
+   78 00005  1021          TAD PTCHME      /AND APPLY TO THE DCA
+   79 00006  3021          DCA PTCHME
+   80              
+   81 00007  6031  BOOT2,  KSF             /GET A CHARACTER FROM SERIAL DISK SERVER
+   82 00010  5007          JMP .-1
+   83 00011  6036          KRB
+   84 00012  7006          RTL             /LEFT SHIFT 4 BITS TO BUILD UPPER HALF
+   85 00013  7006          RTL
+   86 00014  3002          DCA BTTMP       /SAVE FOR COMBINE
+   87 00015  6031          KSF             /GET LOWER 6 BITS
+   88 00016  5015          JMP .-1
+   89 00017  6036          KRB
+   90 00020  1002          TAD BTTMP
+   91 00021  3001  PTCHME, DCA BTCA        /STORE THE WORD IN MEMORY (MODIFIED TO A DCA I BTCA)
+   92 00022  2001          ISZ BTCA        /POINT AT NEXT ADDRESS
+   93 00023  2000          ISZ BTWC        /SKIP IF DONE
+   94 00024  5007          JMP BOOT2       /GO DO THE NEXT WORD
+   95              
+   96              / AN EXTENDED VERSION OF THE LOADER FOR THE BOOT RECORD STARTS HERE.  SEE
+   97              / THE HANDLER FOR THE BOOT RECORD VERSION
+   98              
+   99 00025  5003          JMP PATCH       /THIS OVERWRITES THE KSF AT BOOT1 TAKING CONTROL
+  100                      NOPUNCH
+
+
+
+      / CONSOLE SERIAL DISK OS/8 HELP BOOT                                Page 3
+
+
+  101        0025          *.-1            /THE JMP BOOT2 ABOVE WILL OVERWRITE THE KSF BELOW
+  102 00025  6031  BOOT1,  KSF             /SKIP IF SERVER HAS SENT US A CHARACTER
+  103 00026  5025          JMP .-1         /WAIT FOR A CHARACTER
+  104 00027  6036          KRB             /READ THE CHARACTER
+  105 00030  7012          RTR             /MOVE BITS INTO POSITION
+  106 00031  7010          RAR
+  107 00032  3001          DCA Z 1         /STORE THE INSTRUCTION.  MODIFIED BY THE FOLLOWING ISZ
+  108 00033  2032          ISZ .-1         /BUMP THE STORE ADDRESS
+  109 00034  5025          JMP BOOT1       /GO DO NEXT ONE
+  110              /END OF HAND TOGGLED CODE
+  111              
+  112                      ENPUNCH
+  113                      $
+
+      No detected errors
+      No links generated
+
+
+
+      / CONSOLE SERIAL DISK OS/8 HELP BOOT                                Page 4
+                                                                 Cross Reference
+
+    1 A    102  BOOT1       109
+    2 A     81  BOOT2        94
+    3 A     73  BTCA         91     92
+    4 A     74  BTTMP        86     90
+    5 A     72  BTWC         93
+    6 A     76  PATCH        99
+    7 A     91  PTCHME       78     79

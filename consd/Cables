@@ -1,0 +1,200 @@
+The RS-232 cable between the server and the PDP-8 will depend on a lot of
+factors.  It is beyond the scope of this document to cover every case
+because while a standard for RS-232 existed at the time these machines
+were built, the standards were not strictly followed.
+
+Server serial ports:
+
+The server will most likely have a male DE-9 connector.  This connector
+was probably first used for RS-232 on the IBM PC/AT.  The DE-9 is found
+on the typical USB to RS-232 converters.  It is also the most common
+connector found on desktop and laptop serial interfaces.
+
+The pinout for the male DE-9 connector is:
+
+1) DCD Data Carrier Detect (In)
+2) RXD Receive Data        (In)  *
+3) TXD Transmit Data       (Out) *
+4) DTR Data Terminal Ready (Out)
+5) GND Ground                    *
+6) DSR Data Set Ready      (In)
+7) RTS Request to Send     (Out)
+8) CTS Clear to Send       (In)
+9) RI  Ring Indicator      (In)
+
+For the server to function only three of these need to be connected.
+The Ground (pin 5), Receive Data (pin 2), and Transmit Data (pin 3).
+All the others are configured to be ignored by the software.  This has
+not been exhaustively tested so if you are having problems you might
+need to trick it by connecting pin 4 to pins 1, 6, and 8.  This will
+force DCD, DSR, and CTS to their operating states.
+
+The other common connector is the male DB-25 connector.  This connector
+was commonly found on the Data Terminal Equipment (DTE) side of the
+connection.  In the listing below I only include the signals that are
+also found on the DE-9.
+
+The pinout for the male DB-25 connector is:
+
+2)  RXD Receive Data        (In)  *
+3)  TXD Transmit Data       (Out) *
+4)  RTS Request to Send     (Out)
+5)  CTS Clear to Send       (In)
+6)  DSR Data Set Ready      (In)
+7)  GND Signal Ground             *
+8)  DCD Data Carrier Detect (In)
+20) DTR Data Terminal Ready (Out)
+
+There are signals defined for all the other pins but they were not used
+by the PDP-8 for asynchronous communications.
+
+
+Straight 8
+
+The original PDP-8 came equipped with a 20 ma current loop interface
+connected to a Teletype model 33 or model 35 at a staggeringly slow
+110 baud.  I built a couple of cards for my Straight 8 that gave 8N1
+operation at speeds up to 38400.  It is not reliable at speeds greater
+than 9600 baud and the parts used are no longer available so what I
+did will not help with this.  I don't know of anyone else who has an
+upgraded console port on their Straight 8.  I will at some point
+work on my own console to attain much higher speeds than the current
+9600 baud and will make that info available.  If you need a jumpstart
+I have replaced MF30 the Teletype connector card (W070) with my own card
+consisting of a baud rate generator and the RS-232 level shifters.  A
+ribbon cable connects this card to a paddle card in slot MF20 which
+originally was an R450 that controlled the baud rate for the console.  I
+used a windowed Microchip PIC processor running at 20 MHZ as the baud
+rate generator.  To go faster than 38400 would have required clocking the
+PIC at a magic frequency.  I still feel this is somewhat a misuse of the
+PIC since there are more transistors in the PIC than in the entire rest
+of the Straight 8.
+
+Note: The R450 is found in slot ME15 on the earlier machines.
+
+
+LINC-8
+
+The LINC-8 can be thought of as a Straight 8 with the addition of a LINC
+or a LINC with the addition of a Straight 8.  In either case for our
+purposes the comments for the Straight 8 above apply except for perhaps
+the slot numbers.
+
+
+8/s
+
+The 8/s does not have a built in console port.  The console interface
+was a Negibus device (option PT08) that was housed in the base of the
+Teletype.  The Rhode Island Computer Museum's 8/s has been equipped
+with RS-232 but no documentation of this conversion has been found and
+the person who built it is no longer with us to ask.  The PT08 is
+logically similar to the TTY interface found in the Straight 8.  It is
+implemented with the bulk of the logic on the W706 and W707 cards.  The
+The W070 could be replaced to drive RS-232 instead of current loop.  It
+is probably possible to tune the R401 clock cards to give a faster baud
+rate.  
+
+
+
+8/I, 8/L and PDP-12
+
+These machines all came equipped to talk to 20 ma current loop Teletypes
+at 110 baud.  My suggestion is to locate the W076 card and replace it
+with an M850.  The W076 is the current loop driver and I have been told
+that the M850 is an interface compatible card that drives RS232.  That
+would get you the RS-232 part.  Vince tells me he has designed his own
+board to replace the W076 which has a 40 pin Berg connector that
+interfaces to the BC01V cable which is the one used by the 8/e, 8/f, and
+8/m Omnibus boards.  This would be convenient if you also have one of
+those machines.
+The other thing that needs to be changed is the M452 which is the baud
+rate generator.  This will need to be adjusted to get the desired baud
+rate as the default setting is 110 baud for the Teletype.  Vince has a
+board he calls M452X which is crystal controlled with a switch to select
+the desired baud rate up to 19200.  DEC also talks about swapping an M405
+for the M452 to obtain much higher baud rates in the PDP-12 maint manual
+section for the DP12.  This should also apply to the console interfaces
+on these machines.
+
+
+8/E, 8/F, 8/M and 8/A
+
+The E, F, and M would normally have an M865, M8650 or M8655 Serial
+interface card for their console.  The 8/A could also use one of those
+boards but was more often equipped with the M8316 option 2 board.
+
+The M865 card was setup to drive a 20 ma current loop to a Teletype.
+This makes it difficult to use with Console Serial Disk as you will need
+to modify the baud rate and have it drive RS-232 levels instead of the
+current loop.
+
+The M8650 card by default can drive a 20 ma current loop or RS-232 at
+speeds of up to 2400 baud.  This card does not use a UART and if the
+baud rate clock is modified it can run at speeds as fast as 230.4k baud.
+And while it could be used with CSD at 2400 baud this will get old very
+quickly.  If you are handy with a soldering iron you might consider
+doing the modifications.  Instructions can be found on the web.
+
+The M8655 card can drive a 20 ma current loop or RS-232 at speeds up to
+19200 baud.  Not all cards can do 19200 baud as some of the UARTs used
+were not able to operate at that speed.  An M8655 operating at 9600 baud
+will perform an OS/8 directory command in about 20 seconds.  At 19200
+this will take about 10 seconds.
+
+The M8316 board is a hex width card and will only fit in the 8/a.  It
+includes a UART based console interface with a Berg connector that
+connects to a BC01v cable.  It can operate at speeds up to 9600 baud.
+There is a DIP switch to select the baud rate and 19200 is one of the
+selections but the documentation indicates this does not work.  I expect
+that this is a limitation of the UART.
+
+You probably have one of these cards in your machine.  The M8655 is the
+easiest to get working because it is already capable of RS-232 at usable
+baud rates.  A modified M8650 would be the best because it can operate
+at much higher baud rates.  The M865 is not all that useful as it would
+be considerable work to modify.  The M8316 is even easier to setup than
+the M8655 because everything is selected with DIP switches.
+
+There are also some non DEC Omnibus boards that can be used as a console
+produced by individuals.  However, a quick web search did not turn up
+anything relevant.  I will add this info when I can.  Perhaps your
+google fu is better than mine.
+
+If you do not have a BC01v cable my suggestion is to make one that only
+includes the GND, RXD, and TXD connections between the Berg and the
+female DE-9.  The reason I suggest this is it will plug directly into
+the USB converter on the server and requires no annoying adaptors.  There
+will be just 3 wires to the DE-9 and the jumper between pins E and M on
+the Berg side.
+
+
+The BC01v cable:
+
+The cable used with the M8650 and M8655 is a DEC BC01V which has a 40 pin
+Berg connector on one end and a DB25 female connector on the other end.
+This cable was intended to plug directly into a piece of DTE gear like
+one of DEC's video terminals.  You will need a device to convert from the
+DB-25 female to the DE-9 male found on the server.  At the time of this
+writing you can easily find these on EBay and Amazon for under $10.
+
+The pinout for the female DB25 is:
+
+DB#     Signal Name         Dir   Berg
+1)      Protective Ground         UU
+2)  TXD Transmit Data       (Out) F
+3)  RXD Receive Data        (In)  J
+4)  RTS Request to Send     (Out) V
+7)  GND Signal Ground             VV
+8)  RSD                     (In)
+20) DTR Data Terminal Ready (Out) DD
+
+Additionally on the Berg you need to connect pin E to pin M.  This ties
+the TTL level serial output to the input of the RS-232 driver.  This was
+probably done for factory testing purposes.
+
+A real BC01V has a few more pins connected but they are not used by the
+M8650 or M8655.
+
+Note: The RTS and DTR are always driven active.
+
+

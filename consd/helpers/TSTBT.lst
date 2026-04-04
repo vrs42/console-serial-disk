@@ -1,0 +1,52 @@
+
+
+
+      / HELP BOOT LOADER ON FIELD 3                                       Page 1
+
+
+    1              / HELP BOOT LOADER ON FIELD 3
+    2                      FIELD 3
+    3        0025          *0025
+    4 30025  6031  BOOT1,  KSF             /SKIP IF SERVER HAS SENT US A CHARACTER
+    5 30026  5025          JMP .-1         /WAIT FOR A CHARACTER
+    6 30027  6036          KRB             /READ THE CHARACTER
+    7 30030  7012          RTR             /MOVE BITS INTO POSITION
+    8 30031  7010          RAR
+    9 30032  3001          DCA Z 1         /STORE THE INSTRUCTION.  MODIFIED BY THE FOLLOWING ISZ
+   10 30033  2032          ISZ .-1         /BUMP THE STORE ADDRESS
+   11 30034  5025          JMP BOOT1       /GO DO NEXT ONE
+   12              
+   13        0200          *0200
+   14 30200  1215          TAD SA
+   15 30201  3216          DCA CA
+   16 30202  1217          TAD SC
+   17 30203  3220          DCA WC
+   18 30204  1616  LP,     TAD I CA
+   19 30205  6201          CDF 00
+   20 30206  3616          DCA I CA
+   21 30207  6231          CDF 30
+   22 30210  2216          ISZ CA
+   23 30211  2220          ISZ WC
+   24 30212  5204          JMP LP
+   25 30213  6203          CDF CIF 00
+   26 30214  5615          JMP I SA
+   27 30215  0025  SA,     0025
+   28 30216  0000  CA,     .-.
+   29 30217  7770  SC,     -0010
+   30 30220  0000  WC,     .-.
+   31                      $
+
+      No detected errors
+      No links generated
+
+
+
+      / HELP BOOT LOADER ON FIELD 3                                       Page 2
+                                                                 Cross Reference
+
+    1 A      4  BOOT1        11
+    2 A     28  CA           15     18     20     22
+    3 A     18  LP           24
+    4 A     27  SA           14     26
+    5 A     29  SC           16
+    6 A     30  WC           17     23

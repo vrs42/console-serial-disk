@@ -1,0 +1,390 @@
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 1
+
+
+    1              / SERIAL DISK OVER THE CONSOLE PORT (SYS)
+    2              /
+    3              / COPYRIGHT (C) 2022 BY DOUGLAS P INGRAHAM.  NO RIGHTS RESERVED.
+    4              / FEEL FREE TO USE THIS CODE FOR ANY PURPOSE THAT DOES NO HARM.
+    5              
+    6              / THIS HANDLER IS USED TO READ AND WRITE MAX SIZE OS/8 DEVICES OVER THE
+    7              / CONSOLE SERIAL PORT.  IT MUST TALK TO THE MATCHING CSD SERVER.  THIS
+    8              / MUST BE INSTALLED WITH BUILD TO WORK CORRECTLY.
+    9              
+   10        0001          VERS="A&77      /VERSION DISPLAYED BY RESORC
+   11              
+   12        0003          DEVCNT=3        /SYS, CSD0 AND CSD1 DEVICES FOR NOW
+   13                      DECIMAL
+   14        7777          DEVSIZ=4095     /MAXIMUM SIZE DEVICE (DOES 0 WORK FOR 4096?)
+   15                      OCTAL
+   16              
+   17              
+   18        0000          *0
+   19 00000  7775          -DEVCNT         /NUMBER OF ENTRIES
+   20              
+   21 00001  0323          DEVICE CSD; DEVICE  SYS; 4401; 2007; 0; DEVSIZ
+      00002  0400
+      00003  2331
+      00004  2300
+      00005  4401
+      00006  2007
+      00007  0000
+      00010  7777
+   22 00011  0323          DEVICE CSD; DEVICE CSD0; 4401; 1007; 0; DEVSIZ
+      00012  0400
+      00013  0323
+      00014  0460
+      00015  4401
+      00016  1007
+      00017  0000
+      00020  7777
+   23 00021  0323          DEVICE CSD; DEVICE CSD1; 4401; CSD1&0177+1000; 0; DEVSIZ
+      00022  0400
+      00023  0323
+      00024  0461
+      00025  4401
+      00026  1041
+      00027  0000
+      00030  7777
+   24              
+   25              /BOOT CODE
+   26              
+   27 00031  7731          BTWC-BLAST      /TWO'S COMP OF LENGTH OF BOOT CODE FOR BUILD
+   28              
+   29                      RELOC 0
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 2
+
+
+   30 00000* 7400  BTWC,   -0400           /WORD COUNT TO TRANSFER 
+   31 00001* 0001  BTCA,   0001            /CURRENT ADDRESS TO STORE WORD.
+   32 00002* 0000  BTTMP,  .-.             /THIS IS AN INITIAL DONT CARE VALUE.
+   33              
+   34              / THE NEXT FOUR WORDS REPLACE THE PATCH CODE IN THE BOOT2 HELP LOADER
+   35 00003* 7605  OS8GO,  7605            /OS8 ENTRY POINT
+   36 00004* 0047  BTSRC,  0047
+   37 00005* 7647  BTDST1, 7647
+   38 00006* 7600  BTDST2, 7600
+   39              
+   40 00007* 6031  BOOT2,  KSF             /GET A CHARACTER FROM SERIAL DISK SERVER
+   41 00010* 5007          JMP .-1
+   42 00011* 6036          KRB
+   43 00012* 7006          RTL             /LEFT SHIFT 4 BITS TO BUILD UPPER HALF
+   44 00013* 7006          RTL
+   45 00014* 3002          DCA BTTMP       /SAVE FOR COMBINE
+   46 00015* 6031          KSF             /GET LOWER 6 BITS
+   47 00016* 5015          JMP .-1
+   48 00017* 6036          KRB
+   49 00020* 1002          TAD BTTMP
+   50 00021* 3401          DCA I BTCA      /STORE THE WORD IN MEMORY
+   51 00022* 2001          ISZ BTCA        /POINT AT NEXT ADDRESS
+   52 00023* 2000          ISZ BTWC        /SKIP IF DONE
+   53 00024* 5007          JMP BOOT2       /GO DO THE NEXT WORD
+   54              
+   55              / WHEN WE GET HERE THE BOOT BLOCK IS LOADED IN MEM PAGES 0 AND 1
+   56              / WE NOW NEED TO COPY THEM INTO PLACE.
+   57              
+   58              / FIRST DO THE FIELD 1 PIECE
+   59 00025* 1404  BTCPY1, TAD I BTSRC     /LOAD
+   60 00026* 6211          CDF 10          /SWITCH TO FIELD 1
+   61 00027* 3405          DCA I BTDST1    /STORE
+   62 00030* 6201          CDF 00          /SWITCH TO FIELD 0
+   63 00031* 2004          ISZ BTSRC       /BUMP SRC ADDRESS WILL NEVER SKIP
+   64 00032* 2005          ISZ BTDST1      /BUMP DST ADDRESS AND SKIP IF DONE
+   65 00033* 5025          JMP BTCPY1
+   66              
+   67              / NEXT DO THE FIELD 0 PIECE
+   68 00034* 1404  BTCPY2, TAD I BTSRC     /LOAD
+   69 00035* 3406          DCA I BTDST2    /STORE
+   70 00036* 2004          ISZ BTSRC       /BUMP SRC ADDRESS WILL NEVER SKIP
+   71 00037* 2006          ISZ BTDST2      /BUMP DST ADDRESS AND SKIP IF DONE
+   72 00040* 5034          JMP BTCPY2
+   73              
+   74 00041* 5403          JMP I OS8GO     /AND GO START OS8
+   75              
+   76 00042* 0000          ZBLOCK 047-.    /PAD TO FILL THE SECTION
+      00043* 0000
+      00044* 0000
+      00045* 0000
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 3
+
+
+      00046* 0000
+   77              
+   78              BLAST,  RELOC
+   79              
+   80              /////// END OF BOOT
+   81              
+   82              
+   83              / THE HANDLER STARTS HERE
+   84              
+   85        0200          *200
+   86                      RELOC 7600
+   87              
+   88 07600* 0000          ZBLOCK 7        /SKIP OVER THE OS/8 RESTART CODE
+      07601* 0000
+      07602* 0000
+      07603* 0000
+      07604* 0000
+      07605* 0000
+      07606* 0000
+   89              
+   90 07607* 0001  SYS,    VERS            /RESORC DISPLAYS THIS AS THE VERSION NUMBER
+   91 07610* 4243          JMS SETUP       /NEVER RETURNS.  TELLS THE SERVER THE ENTRY POINT
+   92              / THE ABOVE JMS SETUP WILL NEVER RETURN
+   93              
+   94              / SEND AN 8 BIT VALUE TO THE SERVER
+   95 07611* 0000  SEND8,  .-.
+   96 07612* 6041          TSF             /WAIT FOR LAST ONE TO COMPLETE
+   97 07613* 5212          JMP .-1
+   98 07614* 6046          TLS             /SEND THE CHARACTER
+   99 07615* 5611          JMP I SEND8     /RETURN
+  100              
+  101              / SEND A 12 BIT VALUE TO THE SERVER
+  102 07616* 0000  SEND12, .-.
+  103 07617* 4211          JMS SEND8       /SEND THE LOWER 8 BITS
+  104 07620* 7112          CLL RTR         /MOVE UPPER 4 BITS DOWN
+  105 07621* 7012          RTR
+  106 07622* 4211          JMS SEND8       /SEND THE UPPER 4 BITS
+  107 07623* 7300          CLA CLL         /GET BACK TO KNOWN STATE
+  108 07624* 5616          JMP I SEND12    /RETURN
+  109              
+  110              / GET A 12 BIT VALUE FROM THE SERVER
+  111 07625* 0000  GET12,  .-.
+  112 07626* 6031          KSF             /WAIT FOR A CHARACTER
+  113 07627* 5226          JMP .-1
+  114 07630* 6036          KRB             /READ IN THE CHARACTER
+  115 07631* 7106          CLL RTL         /SHIFT LEFT 4 BITS
+  116 07632* 7006          RTL
+  117 07633* 3352          DCA TEMP        /SAVE UPPER 8 BITS
+  118 07634* 6031          KSF             /WAIT FOR LOWER 4 BITS
+  119 07635* 5234          JMP .-1
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 4
+
+
+  120 07636* 6036          KRB             /READ IN THE LOWER 4 BITS
+  121 07637* 1352          TAD TEMP        /COMBINE
+  122 07640* 5625          JMP I GET12     /RETURN
+  123              
+  124              / THE 2ND ENTRY POINT SHOULD BE AT OFFSET 41.  ENFORCE SOMEHOW?
+  125 07641* 0000  CSD1,   .-.             /2ND DEVICE ENTRY POINT
+  126 07642* 4243          JMS SETUP       /NEVER RETURNS.  TELLS THE SERVER THE ENTRY POINT
+  127              
+  128 07643* 0000  SETUP,  .-.             /WE PASS THIS TO THE SERVER AND IT FIGURES IT ALL OUT
+  129 07644* 7340          CLA CMA CLL     /GET AC AND LINK TO A KNOWN STATE
+  130                                      /-1 IN THIS CASE TO INIT TSFSET
+  131              
+  132              /SD SHARES THE CONSOLE PORT.  THE CALLER COULD HAVE JUST SENT A CHAR SO
+  133              / WE WAIT UP TO A CHAR TIME OR UNTIL THE FLAG IS SET.
+  134 07645* 3342          DCA TSFSET      /INITIALIZE THE TSFSET FLAG TO INDICATE SET
+  135 07646* 1256          TAD BDTIME      /WE NEED TO WAIT A CHARACTER TIME
+  136 07647* 3352          DCA TEMP        /INITIALIZE THE TIMER COUNTER
+  137 07650* 6041  BDLP,   TSF             /GET STATE OF TRANSMIT FLAG
+  138 07651* 5253          JMP NOTSET      /WE WAIT FOR ONE
+  139 07652* 5257          JMP WAKEUP      /WE GOT NO TSF FLAG.  SEND SERVER WAKEUP
+  140              
+  141 07653* 2352  NOTSET, ISZ TEMP        /HAVE WE WAITED A CHARACTER TIME?
+  142 07654* 5250          JMP BDLP        /NOT YET
+  143 07655* 2342          ISZ TSFSET      /MARK TSF FLAG AS NOT SET.  THIS ISZ WILL ALWAYS SKIP.
+  144 07656* 7530  BDTIME, 7530            /TIMER CONSTANT.  SEE NOTES NEAR END.
+  145              
+  146              /WE NEED TO WAKEUP THE SERVER.  WE SEND IT THE WAKEUP CODE OF 02X WHERE
+  147              /THE X IS REPLACED BY THE CALLERS DATA FIELD.
+  148              
+  149 07657* 6214  WAKEUP, RDF             /GET THE CALLERS DATA FIELD IN 6-8
+  150 07660* 7012          RTR             /SHIFT RIGHT 3 BITS
+  151 07661* 7010          RAR
+  152 07662* 1327          TAD WKUP        /ADD IN THE WAKEUP CODE
+  153 07663* 6046          TLS             /SEND THE WAKEUP COMMAND TO THE SERVER
+  154              
+  155              / NOW SEND THE ADDRESS OF THE ENTRY POINT USED
+  156 07664* 7200          CLA             /OR HAVE THE SERVER SUBTRACT THE WAKEUP CODE FROM THIS
+  157 07665* 1243          TAD SETUP       /GET POINTER TO ENTRY POINT
+  158 07666* 4216          JMS SEND12      / AND SEND IT
+  159              
+  160              
+  161              /AT THIS POINT THE SERVER IS IN DISK MODE AND WON'T SEND ANYMORE
+  162              /CHARACTERS FROM THE KEYBOARD UNTIL THE REQUEST IS COMPLETED.
+  163              
+  164              /NOW HANDLE THE KEYBOARD
+  165              / WE HAVE TO REMEMBER IF THE FLAG WAS SET ON ENTRY.  THE SERVER MUST
+  166              / RESEND THE LAST KEYSTROKE AGAIN ALWAYS.
+  167 07667* 7240          CLA CMA         /A -1 MEANS THE FLAG WAS SET
+  168 07670* 6031          KSF             /IS THE FLAG SET?
+  169 07671* 7001          IAC             /NO, A 0 MEANS THE FLAG WAS NOT SET
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 5
+
+
+  170 07672* 3343          DCA KSFSET      /REMEMBER THIS
+  171 07673* 6036          KRB             /READ WHATEVER IS IN THE BUFFER AND CLEAR THE FLAG
+  172 07674* 4211          JMS SEND8       /AND SEND IT TO THE SERVER
+  173              
+  174              /NOW WE GO INTO COMMAND MODE AND DO WHAT THE SERVER TELLS US.
+  175              
+  176 07675* 4225  CMDLP,  JMS GET12       /READ THE ADDRESS
+  177 07676* 3350          DCA CA          /SAVE THE CURRENT ADDRESS
+  178 07677* 4225          JMS GET12       /READ THE WORD COUNT
+  179 07700* 3351          DCA WC
+  180 07701* 4225          JMS GET12       /READ THE COMMAND
+  181 07702* 7500          SMA             /TEST FOR JMP COMMAND
+  182 07703* 5316          JMP RDORWR      /IT IS A READ OR A WRITE COMMAND
+  183              /WE HAVE A JMP COMMAND.
+  184 07704* 3313          DCA FARJMP      /THIS IS A CDF CIF TO THE CALLERS RETURN FIELD
+  185              / FIX UP THE TSF FLAG IF NECESSARY
+  186 07705* 2342          ISZ TSFSET      /SKIP IF TSF FLAG WAS SET ON ENTRY
+  187 07706* 6042          TCF             /ELSE CLEAR IT
+  188              
+  189              /HANDLE KSF AND CHARACTER IN INPUT BUFFER.  SERVER ALWAYS
+  190              /RESENDS THE CHARACTER.
+  191 07707* 6031          KSF             /WAIT FOR SERVER TO SEND THE CHARACTER
+  192 07710* 5307          JMP .-1
+  193 07711* 2343          ISZ KSFSET      /SKIP IF THE FLAG NEEDS TO BE LEFT SET
+  194 07712* 6032          KCC             /ELSE CLEAR THE FLAG
+  195              
+  196 07713* 7402  FARJMP, HLT             /OVERWRITTEN BY A CDF CIF TO THE DESTINATION FLD
+  197 07714* 1351          TAD WC          /THIS IS VALUE LOADED IN THE AC FOR THE RETURN
+  198 07715* 5750          JMP I CA        /AND PERFORM THE FAR JMP
+  199              
+  200 07716* 7006  RDORWR, RTL             /LINK CLEAR IF READ, SET IF WRITE.
+  201 07717* 7001          IAC             /NOW THIS IS A CDF INSTRUCTION.
+  202 07720* 3321          DCA .+1         /AND EXECUTE NOW
+  203 07721* 7402          HLT             /THIS BECOMES A CDF TO THE TRANSFER FIELD
+  204 07722* 7430          SZL             /IS THIS A MEMORY WRITE
+  205 07723* 5333          JMP RDMEM       /NO IT IS A MEMORY READ
+  206              
+  207 07724* 4225  WRMEM,  JMS GET12       /GET READ BYTE FROM SERVER
+  208 07725* 3750          DCA I CA        /STORE IN USERS BUFFER
+  209 07726* 2350          ISZ CA          /POINT AT NEXT
+  210 07727* 0020  WKUP,   020             /EXECUTES AS A HARMLESS AND 020
+  211 07730* 2351          ISZ WC          /ARE WE DONE YET?
+  212 07731* 5324          JMP WRMEM       /NOT YET
+  213              
+  214 07732* 5275          JMP CMDLP       /GO GET NEXT COMMAND
+  215              
+  216 07733* 1750  RDMEM,  TAD I CA        /GET WORD TO BE WRITTEN
+  217 07734* 2350          ISZ CA          /POINT AT NEXT
+  218 07735* 7000          NOP             /IN CASE WE TRANSFER 7777
+  219 07736* 4216          JMS SEND12      /SEND TO SERVER
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 6
+
+
+  220 07737* 2351          ISZ WC          /ARE WE DONE YET?
+  221 07740* 5333          JMP RDMEM       /NOT YET
+  222              
+  223 07741* 5275          JMP CMDLP       /GO GET NEXT COMMAND
+  224              
+  225              /CONSTANTS
+  226              / THE VALUE FOR BDTIME IS THE TWOS COMPLEMENT OF THE NUMBER OF COUNTS
+  227              / OF THE TIMING LOOP FOR A SINGLE CHARACTER TRANSMISSION.  IT SHOULD
+  228              / BE TUNED FOR YOUR MACHINE.  HERE ARE SOME EXAMPLES FOR REFERENCE.
+  229              /BDTIME, 7260           / PDP-8/e 4800 8N1 ON M8655 (6.2US PER LOOP)
+  230              /BDTIME, 7530           / PDP-8/e 9600 8N1 ON M8655 (6.2US PER LOOP)
+  231              /BDTIME, 7654           / PDP-8/e 19200 8N1 ON M8655 (6.2US PER LOOP)
+  232              /BDTIME, 7726           / PDP-8/e 38400 8N1 ESTIMATE (6.2US PER LOOP)
+  233              /BDTIME, 7746           / SIMH AT DEFAULT SETTINGS (OVER 62K BAUD?)
+  234              /BDTIME, 7762           / PDP-8/e 115200 8N1 ESTIMATE (6.2US PER LOOP)
+  235              /BDTIME, 7771           / PDP-8/e 230400 8N1 ESTIMATE (6.2US PER LOOP)
+  236              / THE CONSTANT WAS MOVED INTO THE LOOP TO FILL AN ALWAYS SKIPPED SPACE
+  237              
+  238              / COMMAND TO WAKEUP THE SERVER.  MUST BE AN UNUSED CONTROL CHARACTER.
+  239              / A TELETYPE SENDS THE 0200 BIT SET SO WE SHOULD BE ABLE TO USE ANY
+  240              / VALUES BELOW 0200.  LETS AVOID THE COMMON ONES ANYWAY.
+  241              / 000  NUL      FEED HOLES OR CR-LF TIMING
+  242              / 007  BEL      RING THE BELL
+  243              / 010  BS       BACKSPACE
+  244              / 011  HT       TAB
+  245              / 012  LF       LINEFEED
+  246              / 013  VT       VERTICAL TAB
+  247              / 014  FF       FORM FEED
+  248              / 015  CR       CARRIAGE RETURN
+  249              / 033  ESC      ESCAPE
+  250              / 040  SPACE    SPACE
+  251              / 0177 DEL      DELETE
+  252              /WE NEED A RANGE OF 8.  THE BOTTOM 3 BITS ARE THE CALLERS DATA FIELD.
+  253              /020 THROUGH 027 SEEM USABLE.
+  254              
+  255              /THE WKUP CONSTANT WAS MOVED TO THE FRONT IN ORDER TO PAD THE 2ND
+  256              /ENTRY POINT TO THE CORRECT PLACE
+  257              
+  258              /PERSISTENT VARIABLES
+  259 07742* 0000  TSFSET, 0               / 7777 IF TSF FLAG WAS SET UPON ENTRY
+  260 07743* 0000  KSFSET, 0               / 7777 IF KSF WAS SET UPON ENTRY
+  261              
+  262              
+  263              / PAD THE REST OF THE HANDLER SPACE WITH ZEROS.  IT IS NOT NECESSARY
+  264              / BUT MAKES THE BOOT BLOCK MORE CONSISTENT.
+  265                      ZBLOCK 7744-.
+  266              
+  267              /VARIABLES USING THE DATA BREAK ADDRESSES
+  268        7750  CA=7750                 /CALLERS TRANSFER ADDRESS
+  269        7751  WC=7751                 /WORDS COUNT AS TWO'S COMPLEMENT
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 7
+
+
+  270        7752  TEMP=7752               /SHORT TERM TEMPORARY
+  271              
+  272                      RELOC
+  273                      $
+
+      No detected errors
+      No links generated
+
+
+
+      / SERIAL DISK OVER THE CONSOLE PORT (SYS)                           Page 8
+                                                                 Cross Reference
+
+    1 A    137  BDLP        142
+    2 A    144  BDTIME      135
+    3 A     78  BLAST        27
+    4 A     40  BOOT2        53
+    5 A     31  BTCA         50     51
+    6 A     59  BTCPY1       65
+    7 A     68  BTCPY2       72
+    8 A     37  BTDST1       61     64
+    9 A     38  BTDST2       69     71
+   10 A     36  BTSRC        59     63     68     70
+   11 A     32  BTTMP        45     49
+   12 A     30  BTWC         27     52
+   13 A    268  CA          177    198    208    209    216    217
+   14 A    176  CMDLP       214    223
+   15 A    125  CSD1         23
+   16 A     12  DEVCNT       19
+   17 A     14  DEVSIZ       21     22     23
+   18 A    196  FARJMP      184
+   19 A    111  GET12       122    176    178    180    207
+   20 A    260  KSFSET      170    193
+   21 A    141  NOTSET      138
+   22 A     35  OS8GO        74
+   23 A    216  RDMEM       205    221
+   24 A    200  RDORWR      182
+   25 A    102  SEND12      108    158    219
+   26 A     95  SEND8        99    103    106    172
+   27 A    128  SETUP        91    126    157
+   28 A     90  SYS     
+   29 A    270  TEMP        117    121    136    141
+   30 A    259  TSFSET      134    143    186
+   31 A     10  VERS         90
+   32 A    149  WAKEUP      139
+   33 A    269  WC          179    197    211    220
+   34 A    210  WKUP        152
+   35 A    207  WRMEM       212

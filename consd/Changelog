@@ -1,0 +1,295 @@
+Change log:
+	Unfortunately I was not especially diligent in updating this log.
+	This is a combination of logs from more than one place.
+
+
+20220213 handler
+	Started coding the single SYS entry point version.
+
+20220218 handler
+	Fleshed it all out.  Just exactly fits without any tricks.
+
+20220330 handler
+	Moved some variables to the data break locations and now have
+	four words free.
+
+20220427 handler
+	Added the 20220330 comment.  Added the boot code which isn"t really
+	used but is what ends up in memory.  Made changes in the boot code
+	after revisiting the boot process.  Moved BOOT2 such that it starts
+	at 0037 and ends at 0046 which is the last location the traditional
+	style OS/8 boots use in the boot sector.
+
+20220428 handler
+	Decided to make the boot more like all the other handlers.  The
+	boot process consists of starting the BOOT1 code, telling the
+	server to go into boot mode where it sends the help version of
+	BOOT2 and then sends the boot block.  BOOT2 reads the boot block
+	at 0 and then moved the pieces into their locations and then
+	JMPS TO 7605 to start OS/8.
+
+20220501 handler
+	Added a reloc just before the $ at the end for symmetry.
+
+20220503 handler
+	Fixed a comment and added back in the nops after the isz which should
+	get skipped only when transfering the last word of a field.
+
+20220507 Handler
+	Commented out the correct device header and changed it to match
+	the RK8E.  This is so we should be able to copy in this header
+	onto a working RK05 disk image for an initial boot.
+
+20220526 Server
+	Investigated the boot block to see what gets loaded at 07600
+	through 07606 which is:
+	07600	4207	JMS 7607	/ CALL THE SYS HANDLER
+	07601	5000	05000		/ WRITE 010 BLOCKS FROM FIELD 0
+	07602	0000	0000		/ STARTING AT 0000
+	07603	0033	0033		/ TO BLOCK 0033
+	07604	7602	CLA HLT		/ IF THERE IS AN ERROR
+	07605	6213	CDF CIF 10	/ FAR JMP TO FIELD 1
+	07606	5267	JMP 7667	/ COULD BE VERSION DEPENDENT
+	I suspect that the above might be the same on all OS/8 versions.
+	The JMP at 7606 is the only thing that might change, the rest
+	are kind of locked in concrete.  Should put a warning in the
+	server if these are not correct.
+
+20220527 Both
+	Moved the handler code to the rasp pi and placed in a subdir
+	called handler.  Renamed the server subdir to server.  Added
+	this Readme.  Installed palbart on the pi as well.
+
+20220530 Server
+	Verified the hand toggled code loads the help loader which then
+	loads the boot sector over itself.
+
+20220703 tsttty
+	I am a little confused about using the tty device as the
+	console so I did some testing in this subdir.  The plan is
+	to open /dev/tty with a new descriptor and leave STDIN_FILENO,
+	STDOUT_FILENO, and STDERR_FILENO alone.  Tested the output.
+
+20220704 tsttty
+	Continued testing with the input from the keyboard portion.
+	And it seems to all work as well.
+
+20220705 server
+	Changed the code to use the stuff I learned from tsttty.
+	Put the loopback program in the 8:
+	6031 KSF
+	5200 JMP 200
+	6036 KRB
+	6046 TLS
+	5200 JMP 200
+	And while this does not test every code it does echo what I type
+	just as expected.  It does seem to be in raw mode both directions.
+	Found a bug involving precidence.  if( pdp_ch&0370 == 020 ) fails
+	because == has a higher precidence than &.
+
+20220706 server
+	Verified that the fix from yesterday worked.  Started debugging
+	the next problem which is that the address of the handler caller
+	is not being received correctly.  I am seeing a 5223 instead of
+	a 7671.
+
+20220707 handler
+	Found a bug in get12 where if the link was set then the value
+	would have 010 added to it.  Also cleared the link in send12
+	although i don't think it would matter there.
+
+20220707 server
+	Trying to figure out why it is not getting the correct address of
+	the Caller.
+
+20220707 recvtst
+	Wrote a program to receive and test characters sent by the 8.  A
+	simple counting sequence was used and a "." was printed every
+	256 characters.  This was to verify that Linux on the Pi could
+	accept characters at full rate (9600 baud at least.)
+
+20220708 handler
+	Changed the names of the read and write routines to match their
+	functions relative to the server since it is the one giving the
+	orders.
+
+20220718 handler
+	Moved some code around so setup is at the second handler entry
+	point.  If the server does not see 7611 (7607+2) as the initial
+	called address, it knows the second entry point was called.
+
+20220719 server
+	Found the bug that was causing the 8 to jump off into the weeds.
+	It was a 62X3 instead of a 062X3.  The handler far jmp was
+	executing a JMS 0105 instead of the CDF CIF and returning to the
+	caller.
+
+20220720 handler
+	Moved the WKUP constant into the NOP position after an ISZ to
+	save a word.  The WKUP character will execute as a harmless
+	AND instruction.  This gave enough space to make the second
+	RK05 entry point functional so that code was added as well.
+
+20220720 server
+	Added the functionality of the second device for the RK05.
+	Added the code to write out the system image when the F1
+	key is pressed to exit.  Added the code to detect operations off
+	the end of the medial.  Started removing superfluous debug
+	stuff.
+
+20220721 Documentation
+	Time to get this ready for some sort of release.
+
+20220725 server
+	I had previously added in the detection for access off the end
+	of the media.  Added in the error return to OS/8 for this
+	action.  Continued the cleanup of the debugging messages.  Added
+	comments for places that need work in csd.c like control C
+	testing.  Added a version number display for when the server
+	starts up.  If it knows about the installed handler then it
+	silently starts up.
+
+20220725 Documentation
+	Decided to suggest not messing with the BDTIME constant in the
+	handler.  The default value should work on anything that doesn't
+	run slower than 9600 baud.
+
+20220725 0.1 Beta
+	as soon as I close this out I am going to make a tarball for
+	Kyle and Vince and email it off.
+
+20220726 Server
+	Found PDP_SP and PDP_BAUD were also defined in tty.c so those
+	are now only in csd.c.  Added the conversion of teh DEL key
+	to a RUBOUT (0177) code in tty.c
+
+20220727 Server
+	Added a usage message if an unknown command line option is
+	specified.  Added code to help detect a bad image by verifying
+	the even and odd bytes are within range before assembly into
+	a 12 bit word.  If someone had an endian issue this could be
+	a problem.
+
+20220727 handler
+	The TSF flag was being set to the wrong state on return.  This
+	was the cause of R PIP hanging the machine.  It is not clear
+	why running R PAL8 and then R PIP didn't have an issue but
+	correcting the TSF flag resolved it.
+
+20220728 0.20 Beta
+	Tarball for Vince and Kyle.
+
+20220802 Documentation
+	Forgot to add an entry for this.  Started reorganizing the
+	documentation into the outer consd directory.  Consolidated the
+	changelogs into this one file.
+
+20220802 Handler
+	copied CONSYS.PA to PCHSYS.PA and then corrected CONSYS.PA to
+	make it a handler independent from the RK05.  This is necessary
+	because handlers cannot share an entry point address.  What this
+	means is that since RKB0 has its entry point at page offset 0021.
+	The CONSYS.PA has CDB0 entry point at page offset 0041 so that it
+	can be used with Kyle's Serial Disk if desired.
+
+20220808 Handler
+	Added CONNON.PA which is the non system handler supporting CSD0
+	through CSD7 on entry points 40-47.  Also RKA0 and RKB0 on entry
+	points 20 and 21, and finally DTA0 on entry point 10.
+
+20220812 Server
+	Started making changes to add more block devices.  Added the CSD
+	devices and changed the earlier configuration to make it RK05.
+	Stubbed in the DECtape.
+
+20220823 Server
+	Added support for CSD0-7 devices.  Keeping the boot with an RK05
+	image so these are currently supported only on the nonsys
+	handler.
+
+20220830 Server
+	Dropped back to just CSD0-3 for supported devices.  Having eight
+	devices takes up too much space to be necessary.  Started
+	modifying csd.c to handle multiple devices selected by the entry
+	point address.  Still only supports RK05 as the system image.
+
+20220831 Server
+	Fixed a bug in yesterday's changes and tested on Vince's 8/a.
+	changed tty.c to allow for a cygwin difference but this only
+	partially corrected the problem.  The change allows a -1 return
+	from read to indicate no characters were present.  Cygwin does
+	not turn off echo correctly (at least on this ancient version
+	running under Vista.  Decided to not worry about Cygwin for now.
+
+20220831 Documentation
+	Verified the 9600 baud value of BDTIME on the 8/a.
+
+20220901 Server
+	Reorganized doserver in csd.c to allow for using disk images
+	other than the RK05 system image.
+
+20221024 Server
+	Changed boot.c to use the boot block in csd0.
+
+20230511 Documentation
+	Added the Cables documentation file.  Minor changes to the
+	Readme file.
+
+20230519 Documentation
+	Continued working on the Cables (and interfaces) document.
+	Cleaned up the Config documentation a little.
+	Worked on the Readme file.
+	worked on the Upgrades file.
+
+20230610 loopback test program
+	Tested loopback.c on the Raspberry pi 400 and the decset8000.
+	Documented the final character blocking count.
+
+20230610 Documentation
+	Added the PDP-8 loopback program to loopback.c source comments.
+
+20230627 helpers
+	Started a program to compare OS.8 system areas called os8cmp.c.
+
+20230628 Server
+	Modifying disk.c to use csd0.img as the system image instead of
+	the rk05 or serial disk images.  This also required changed to
+	csd.c.
+	Unknown function keys now just display a message and are ignored.
+	Removed unused variables and fixed debug mode comments in boot.c
+
+20230629 Server
+	A few changes to disk.c, installed the official CONSYS which has
+	support for SYS:, CSD0:, and CSD1:.  Corrected and cleaned up
+	some debugging messages in csd.c.
+
+20230629 Handler
+	Built the handler code from CONSYS.lst and installed it in the
+	server file disk.c so it could automatically be patched in.
+
+20230629 General
+	Managed to build the csd0.img which is SYS: and found that BUILD
+	has some problem with RKA0, RKB0, and DTA0 as seen in the CONNON
+	handler.  When you try to insert them it cant find them even
+	though the PRINT command shows them present.  I need to figure
+	this out or some way to work around it.  I will probably try
+	changing the names to RKA:, RKB:, and DTA:since I was not going
+	to map more than one image anyway.
+
+20230701 Handler
+	BUILD refuses to insert RKA0, RKB0, and DTA0 in the CONNON handler.
+	Changing those names to RKA, RKB, and DTA as a test and will leave
+	it that way if it works.
+
+20230701 Server
+	Changed the name of the RK05 image from rk0.img to rk05.img since
+	there is only one image (two names) supported.  The default RK05
+	image is now the rxdiag pack.  DECtape is stubbed in but not yet
+	working.
+	Changed the version number to 1.0 Release.
+
+20230701 Documentation
+	Update the Readme's in the handler and server subdirs.
+
+20230707 Documentation
+	Updated Readme for upload to Github.

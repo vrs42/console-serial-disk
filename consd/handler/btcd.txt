@@ -1,0 +1,34 @@
+  07400,	/*  BTWC,   -0400           /WORD COUNT TO TRANSFER */
+  00001,	/*  BTCA,   0001            /CURRENT ADDRESS TO STORE WORD.*/
+  00000,	/*  BTTMP,  .-.             /THIS IS AN INITIAL DONT CARE VALUE.*/
+  07605,	/*  OS8GO,  7605            /OS8 ENTRY POINT*/
+  00047,	/*  BTSRC,  0047*/
+  07647,	/*  BTDST1, 7647*/
+  07600,	/*  BTDST2, 7600*/
+  06031,	/*  BOOT2,  KSF             /GET A CHARACTER FROM SERIAL DISK SERVER*/
+  05007,	/*          JMP .-1*/
+  06036,	/*          KRB*/
+  07006,	/*          RTL             /LEFT SHIFT 4 BITS TO BUILD UPPER HALF*/
+  07006,	/*          RTL*/
+  03002,	/*          DCA BTTMP       /SAVE FOR COMBINE*/
+  06031,	/*          KSF             /GET LOWER 6 BITS*/
+  05015,	/*          JMP .-1*/
+  06036,	/*          KRB*/
+  01002,	/*          TAD BTTMP*/
+  03401,	/*          DCA I BTCA      /STORE THE WORD IN MEMORY*/
+  02001,	/*          ISZ BTCA        /POINT AT NEXT ADDRESS*/
+  02000,	/*          ISZ BTWC        /SKIP IF DONE*/
+  05007,	/*          JMP BOOT2       /GO DO THE NEXT WORD*/
+  01404,	/*  BTCPY1, TAD I BTSRC     /LOAD*/
+  06211,	/*          CDF 10          /SWITCH TO FIELD 1*/
+  03405,	/*          DCA I BTDST1    /STORE*/
+  06201,	/*          CDF 00          /SWITCH TO FIELD 0*/
+  02004,	/*          ISZ BTSRC       /BUMP SRC ADDRESS WILL NEVER SKIP*/
+  02005,	/*          ISZ BTDST1      /BUMP DST ADDRESS AND SKIP IF DONE*/
+  05025,	/*          JMP BTCPY1*/
+  01404,	/*  BTCPY2, TAD I BTSRC     /LOAD*/
+  03406,	/*          DCA I BTDST2    /STORE*/
+  02004,	/*          ISZ BTSRC       /BUMP SRC ADDRESS WILL NEVER SKIP*/
+  02006,	/*          ISZ BTDST2      /BUMP DST ADDRESS AND SKIP IF DONE*/
+  05034,	/*          JMP BTCPY2*/
+  05403		/*          JMP I OS8GO     /AND GO START OS8*/

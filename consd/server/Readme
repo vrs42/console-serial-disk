@@ -1,0 +1,73 @@
+Files making up the server:
+
+boot.c
+	This file has the code that deals with booting OS/8.  It sends
+	the custom help loader codes and then sends the boot block.
+
+csd.c
+	This is the console serial disk server.  It includes all the
+	above files.
+
+disk.c
+	This file has the code which reads and writes the virtual disk,
+	floppy and DECtape images.  Upon load it validates the csd0.img
+	file to verify that it is a system image and that it contains
+	a valid csd boot loader and SYS handler.  If it doesn't match
+	the current version the server knows it patches the boot block.
+
+loopback.c
+	This is a test program to verify that the serial port is attached to the
+	PDP-8 and working correctly.  A small program is run on the 8 to echo
+	received characters back to the server.  This program can be
+	found in the source code.
+
+pdp.c
+	This file has the code that sends and receives characters from
+	the PDP-8.
+
+recvtst.c
+	A program to test full speed transmission of characters from the 8
+	to the server.  Prints a dot for every 256 characters received.  See
+	the notes at the front of the program.
+
+tty.c
+	This file has the code that displays characters on the glass Teletype
+	and deals with the Unix keyboard.
+
+textfile
+	This is the file that gets sent when you press F6.  The F6 key sends
+	and character and waits for it to echo.  A carriage return when sent
+	expects a return and a linefeed.  Lines longer than 72 characters
+	will cause the server to error out when the OS/8 TTY: handler ends
+	the line at that point.  You can restart the server and type ^Z to
+	terminate the PIP input.  To read a text file in using PIP:
+
+	.R PIP
+
+	*CONNON.PA<TTY:
+
+	At this point you press F6 and textfile will be sent.  You have to
+	do something like this because the RDR RUN signal cannot be used
+	as hardware flow control with anything except a real teletype.  In
+	the case of the example above the file sent will appear on the DSK:
+	device as CONNON.PA.  
+
+
+Virtual disk images provided.
+csd0.img
+	This is the SYS: image that csd boots from.  It can be referenced
+	as either SYS: or CSD0: from OS/8.  It is mostly a copy of the
+	RKA0: platter on the RK05 distribution from the PiDP-8 project.
+	It was chosen as the source because a lot of care went into its
+	generation.
+
+csd1.img
+	This is the image mapped to CSD1: and DSK: is pointed at it.
+	It is mostly a copy from the RKB0: platter from the PiDP-8
+	distribution mentioned above.
+
+rk05.img
+	This is a diagnostic pack originally called rk05diag.img.  It is
+	accessible as devices RKA: and RKB:
+	I don't know how useful it will be to you.
+

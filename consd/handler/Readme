@@ -1,0 +1,96 @@
+This Readme documents the OS/8 side of the console serial disk project.
+
+The idea percolated for a couple of years before I decided it could
+be made to work.  The server side has several modes of operation.  The
+mode that it sits in most of the time is console mode where it accepts
+characters from the keyboard, converts lower to upper case and then
+ors in 0200 to set the MSB as the PDP-8 would expect from a teletype.
+These characters are sent to the PDP-8 over the console serial port.
+It also listens to the serial port coming from the PDP-8 and displays
+the characters it receives on the screen as if it were a teletype.
+The mode changes to server mode when it receives a 020 through 027
+control code.  This wakeup code tells the server to stop sending
+keyboard codes and to listen for the next three characters which will
+give it enough info to perform as a disk handler.  As mentioned the
+handler sends 020 through 027 where the 0 through 7 tells the server
+the memory field where the request originated.  The next two bytes
+are the address in memory that was called by the user.  The server
+uses this information to determine what device it is responding as.
+The third byte is the character found in the keyboard input buffer.
+A call to the SYS handler always goes to 07607 and the entry point
+of the handler looks like this:
+
+	*7607
+SYS,    VER		/ENTRY POINT WITH INITIAL VERSION NUMBER
+        JMS SETUP	/VALUE AT SETUP IS SENT TO SERVER.
+
+SETUP,  .-.		/THE ADDRESS PLUS 2 THAT WAS CALLED
+
+All entry points will do a JMS SETUP.  In the case of a system
+handler this will send a 7611 to the server.  If the call is from
+another entry point that is co-resident with the system handler it
+will come from some other address in the last page of field 0.  If
+the call is from a non-sys handler then it will come from a known
+address but not from the last page in field 0.  The entry point
+must match something it knows about.  If it doesn't match then there
+could be a mismatch between handler and server or it could be a user
+program happened to send a wakeup code.  If that is the case then
+we could simply display those characters and go back into console
+mode.  There is also a Boot mode.  The operator will hand toggle in
+the help loader and start it running.  The server can then be instructed
+to go into boot mode by pressing SHIFT F12 or by starting it with the -B
+option on the command line.  The server sends the help loader code and
+then sends the boot block on the system device.  The boot loader will
+move the pieces of the boot block to their appropriate locations and
+when done JMP to 07605 to initiate OS/8.
+
+CONNON.PA
+	This is the CONsole NON system handler for the console serial
+	disk service.  This initial version supports up to four max
+	size OS/8 disk images (CSD0: through CSD3:), one RK05 simh style
+	image consisting of two devices RKA: and RKB: and one DECtape
+	image on DTA:  Build refuses to INSTALL when they are named
+	RKA0:, RKB0:, and DTA0:
+
+CONSYS.PA
+	This is the CONsole SYStem handler.  It is a typical handler
+	with the addition of status checks of the TSF and KSF flags
+	upon entry so they can be put back before exit.  This is what
+	was installed with BUILD as the system handler on the csd0.img
+	disk image.  The handler names are SYS:, CSD0: and CSD1:.
+
+PCHSYS.PA
+	This is a special patch version of the SYS handler that was
+	used to bootstrap an operating system using a simh RK05 image
+	or a serial disk boot image.  An early version of the server
+	would patch this handler onto the boot image.  This handler
+	pretends to be an RK05 handler.  And while it works, you can't
+	mix this and a real RK05 on the same system.
+
+OS8bt.pal
+	This is the version of the hand toggled BOOT1 help loader and
+	the BOOT2 code that is used to generate the help code the server
+	will send to BOOT1.
+
+hlpgen.c
+	This program takes the output of a palbart listing and generates
+	the help codes BOOT1 needs in order to load correct code into
+	memory.
+
+btcd.txt
+	This is a massaged version of the boot loader that is found on
+	the boot block.  It is used by the server to validate the system
+	image.  And initially to be installed by the server on an RK05
+	sysgem image for that critical first boot.
+
+bthand.txt
+	This is a massaged version of the handler listing.  It is used
+	by the server to validate the system image.  And initially to
+	be installed by the server on an RK05 image for that critical
+	first boot.
+
+btgen.c
+	takes a palbart listing and converts it to a form appropriate to
+	compiling into a C program.  Used to generate the handler code
+	that in included in the server.
+

@@ -1,0 +1,100 @@
+
+
+
+              *200                                                        Page 1
+
+
+    1        0200          *200
+    2 00200  7301  START,  CLA CLL IAC     /INIT COUNTER TO 1
+    3 00201  3260          DCA BDTIME
+    4 00202  6046          TLS             /DO TWO BUT ONLY TIME THE SECOND ONE
+    5 00203  6041          TSF             /WAIT
+    6 00204  5203          JMP .-1
+    7 00205  6042          TCF             /CLEAR THE FLAG
+    8 00206  6046          TLS             /SEND A NUL
+    9 00207  6041  BDLP,   TSF             /IS THE FLAG SET?
+   10 00210  5227          JMP NOTSET      /NOT YET BUT SOON
+   11              
+   12 00211  1260          TAD BDTIME
+   13 00212  3261          DCA TEMP
+   14              
+   15 00213  1254          TAD ASCCR       /SEND CR
+   16 00214  4245          JMS SENDCH
+   17 00215  1255          TAD ASCLF       /SEND LF
+   18 00216  4245          JMS SENDCH
+   19              
+   20 00217  4232          JMS PROCT       /PRINT THE UPPER 3 BITS AS AN OCTAL
+   21 00220  4232          JMS PROCT
+   22 00221  4232          JMS PROCT
+   23 00222  4232          JMS PROCT
+   24              
+   25 00223  1260          TAD BDTIME
+   26              
+   27 00224  6041          TSF             /WAIT FOR LAST CHARACTER TO FINISH.
+   28 00225  5224          JMP .-1
+   29              
+   30 00226  7402          HLT
+   31              
+   32 00227  2260  NOTSET, ISZ BDTIME      /BUMP TIMER VALUE
+   33 00230  5207          JMP BDLP        /LOOP IF NO OVERFLOW
+   34 00231  7402          HLT             /SHOULDNT EVER GET HERE
+   35              
+   36              
+   37 00232  0000  PROCT,  .-.
+   38 00233  1261          TAD TEMP        /GET RESULT IN AC
+   39 00234  7006          RTL             /MOVE BITS INTO POSITION FOR PRINTING
+   40 00235  7004          RAL
+   41 00236  3261          DCA TEMP        /SAVE FOR NEXT OCTAL DIGIT
+   42 00237  1261          TAD TEMP        /GET IT BACK
+   43 00240  7004          RAL             /UPPER DIGIT IS IN PLACE
+   44 00241  0256          AND C0007       /SAVE JUST THE GOOD BITS
+   45 00242  1253          TAD ASC0        /ADD TO AN ASCII 0
+   46 00243  4245          JMS SENDCH
+   47 00244  5632          JMP I PROCT
+   48              
+   49 00245  0000  SENDCH, .-.
+   50 00246  6041          TSF             /WAIT
+
+
+
+              *200                                                        Page 2
+
+
+   51 00247  5246          JMP .-1
+   52 00250  6046          TLS             /SEND THE CHARACTER
+   53 00251  7200          CLA             /RETURN WITH AC CLEAR
+   54 00252  5645          JMP I SENDCH    /RETURN
+   55              
+   56              /CONSTANTS
+   57 00253  0260  ASC0,   "0
+   58 00254  0215  ASCCR,  0215
+   59 00255  0212  ASCLF,  0212
+   60 00256  0007  C0007,  0007
+   61 00257  7605  C7605,  7605            /FAST OS/8 ENTRY POINT
+   62              
+   63              /VARIABLES
+   64 00260  0000  BDTIME, .-.
+   65 00261  0000  TEMP,   .-.
+   66              
+   67                      $
+
+      No detected errors
+      No links generated
+
+
+
+              *200                                                        Page 3
+                                                                 Cross Reference
+
+    1 A     57  ASC0         45
+    2 A     58  ASCCR        15
+    3 A     59  ASCLF        17
+    4 A      9  BDLP         33
+    5 A     64  BDTIME        3     12     25     32
+    6 A     60  C0007        44
+    7 A     61  C7605   
+    8 A     32  NOTSET       10
+    9 A     37  PROCT        20     21     22     23     47
+   10 A     49  SENDCH       16     18     46     54
+   11 A      2  START   
+   12 A     65  TEMP         13     38     41     42

@@ -1,0 +1,40 @@
+
+
+
+      /SHORT VERSION OF BDTIME FOR HAND TOGGLE IN                         Page 1
+
+
+    1              /SHORT VERSION OF BDTIME FOR HAND TOGGLE IN
+    2        0200          *200
+    3 00200  3215  START,  DCA BDTIME      /INITIALIZE TO ZERO
+    4 00201  6046          TLS             /SEND A NUL
+    5 00202  6041          TSF             /DONT TIME THE FIRST ONE
+    6 00203  5202          JMP .-1
+    7 00204  6046          TLS             /SEND A NUL
+    8 00205  6041  BDLP,   TSF             /IS THE FLAG SET?
+    9 00206  5212          JMP NOTSET      /NOT YET BUT SOON
+   10              
+   11 00207  1215          TAD BDTIME      /GET VALUE IN THE AC
+   12 00210  7041          CMA IAC         /GET TWO's COMP
+   13 00211  7402          HLT             /AND HALT
+   14              
+   15 00212  2215  NOTSET, ISZ BDTIME      /BUMP TIMER VALUE
+   16 00213  5205          JMP BDLP        /LOOP IF NO OVERFLOW
+   17 00214  7402          HLT             /SHOULDNT EVER GET HERE
+   18              
+   19 00215  0000  BDTIME, .-.
+   20              
+   21                      $
+
+      No detected errors
+      No links generated
+
+
+
+      /SHORT VERSION OF BDTIME FOR HAND TOGGLE IN                         Page 2
+                                                                 Cross Reference
+
+    1 A      8  BDLP         16
+    2 A     19  BDTIME        3     11     15
+    3 A     15  NOTSET        9
+    4 A      3  START   

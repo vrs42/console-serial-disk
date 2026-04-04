@@ -1,0 +1,169 @@
+Server configuration:
+
+This is a general guide to installing the software.  It is not difficult
+and does not need any outside software to operate.  Here are the
+requirements:
+
+1)  Posix compliant O/S.  Linux, BSD, Minix should all work.  I developed
+    it on a Raspberry Pi 3B+ which runs a version of Debian Linux.
+2)  A user account where the software can be installed and run.  This can
+    be any account but I never recommend running as root as simple errors
+    can cause endless issues.
+3)  The server will need enough ram to hold all the disk images in memory.
+    I used a Raspberry Pi 3B+ and a Raspberry Pi 400 during development.
+    This is way overkill for what is needed.
+    
+Configuration is very basic needing two lines changed in server/csd.c
+file.  Those two lines are near the front and are:
+
+#define PDP_SP		"/dev/tty/ttyUSB0"
+#define PDP_BAUD	B9600
+
+PDP_SP (PDP Serial Port) will need to be defined.  I used a USB serial 
+port dongle.  If you use the hardware bits and a level converter in your
+Pi the port is something like /dev/ttyS0.  You do not want the OS on the
+server presenting a login on this device.  As for the USB devices, I
+must confess that I found it by doing a ls of the /dev/tty* devices,
+plugging in the dongle and then doing another and seeing what was added.
+There is probably an entry in /var/log somewhere when a USB device is
+added/deleted which would work as well.  The user that runs the server
+will need access to this device.  In my case the ttyUSB0 device was in
+group dialout.  I added the server account to the dialout group.  You
+could also just change the ownership since the server is probably going
+to be the only program that uses that device.
+
+You need to change the baud rate to match what the PDP-8 console port is
+configured for.  9600 is about as slow as I would consider usable.
+These are the accepted baud rate values.
+
+            B50
+            B75
+            B110
+            B134
+            B150
+            B200
+            B300
+            B600
+            B1200
+            B1800
+            B2400
+            B4800
+            B9600
+            B19200
+            B38400
+            B57600
+            B115200
+            B230400
+
+It is not guaranteed that your hardware can support all of them.
+
+Change those two lines in csd.c to match your config and run make to build the
+server.
+
+When I run the server I
+
+1) Login as the user.
+2) cd consd/server
+3) ./csd
+
+Server will start and enter terminal mode.  You can then boot OS/8 by
+toggleing in the csd help boot loader.
+
+
+BDTIME constant
+
+At some future time we may want to patch this in but at this time it is
+a fiddly value to change so just leave it at the 7530 default.  This
+should work unless you decide to run at a baud rate lower than 9600 baud.
+What follows are the notes I started writing up on this topic.  Then I
+tried to change it and realized that my version checking code sees the
+change as an unknown installed handler.
+
+The constant BDTIME generates is the speed of the serial port and
+machine combination which means it needs to be run on the machine it
+will be used on.  In my own testing I obtained:
+
+Baud	CONST	Notes:
+9600	7771	Estimate on 8/S
+9600	7636	Estimate on 8/L
+9600	7632	Estimate on 8/I and PDP-12
+9600	7625	Estimate on Straight 8 and Linc8
+9600	7565	Measured on 8/a (M8315 CPU)
+9600	7530	Measured on 8/e with M8655 (matches estimate)
+
+19200	7774	Estimate on 8/S
+19200	7717	Estimate on 8/L
+19200	7715	Estimate on 8/I and PDP-12
+19200	7713	Estimate on Straight 8 and Linc8
+19200	7673	Estimate on 8/a (M8315 CPU) Not supposed to work on M8316
+19200	7654	Measured on 8/e with M8655 (matches estimate)
+
+38400	7726	Estimate on 8/e
+57600	7744	Estimate on 8/e
+115200	7762	Estimate on 8/e
+230400	7771	Estimate on 8/e
+
+An uncooperative Straight 8 had me estimate those times.  My similar
+estimate for the 8/e gave those numbers exactly so there is a good
+chance they are correct.  The estimate is (1/(bdrate/10))/lptime.
+This gives a loop count needed to wait at least one character time.
+Convert this to the 12 bit two's complement for the ISZ to use.  You
+don't need to round up because there is enough overhead in the call
+to the handler and in the hander before the loop.  The lptime constants
+for the different machines are:
+
+8/e	6.2us
+8/a	7.5us
+8	9.75us
+LINC-8	9.75us
+8/i	10.25us
+PDP-12	10.25us
+8/l	10.65us
+8/s	148us
+
+Those values for lptime are best guesses and might not be correct for
+your particular machine.  Especially if it was molested when it was in
+service.  The times for the 8/e might be wrong depending on the jumper
+on the M8330.
+
+Optimally this could be measured during the boot loader and patched on
+the fly.  I spent a couple of hours trying to make this fit and it will
+require a complete overhaul of the boot loader because it is a few words
+too long.
+
+Alternatively, you can just leave this at the default of 7530  and
+accept slightly slower performance.
+
+You absolutely will want to change BDTIME for an 8/s or if you are trying
+to run this on an FPGA implementation which has some crazy fast
+instruction cycle time (hundreds of mhz kind of thing).  It might not
+even be possible to make the loop counter long enough on a fast enough
+8 implementation.
+
+
+Short way to generate the BDTIME constant.
+
+The constant BDTIME can be generated by the program BDTIME.PA if you
+can find a way to run it on your machine.  Here is a short version
+that can be hand toggled in.
+
+0200 Load
+3215 Dep
+6046 Dep
+6041 Dep
+5202 Dep
+6046 Dep
+6041 Dep
+5212 Dep
+1215 Dep
+7041 Dep
+7402 Dep
+2215 Dep
+5205 Dep
+7402 Dep
+0200 Load
+Clear/Cont or Start depending on the machine.
+
+The answer is in the AC if it halts at addr 211.  The HLT at 214 should
+never be reached.
+

@@ -1,0 +1,52 @@
+This is the file that gets sent to the PDP-8
+when the F6 function key is pressed.  It is
+expected that PIP will be running and waiting
+for text from the console when F6 is pressed.
+A session will look something like this:
+
+.R PIP
+
+*TEXT.TX<TTY:
+
+At this point F6 is pressed and the contents
+of textfile are sent.  You will see the file
+contents echoed here.  When all characters
+have been sent an end of file character will
+be sent which is a control-Z and will be
+echoed as ^Z.  A new PIP prompt will appear
+and you can type control-C to exit PIP.
+
+^Z
+*^C
+.
+
+And you are back in OS/8.  The file TEXT.TX
+should be found on the DSK: device.
+
+Note:  The TTY: handler only allows for 72
+character lines and the 8 will not echo
+the expected character when the 72nd char
+is sent.  When the server sees the wrong
+character echo it will issue an error
+message, close out everything cleanly and
+exit to the operating system.  You can
+recover from this by restarting the server
+with something like
+
+./csd
+
+The boot option should not be given as PIP
+is still listening for the rest of the file.
+You can get back to a PIP * prompt by sending
+a control-Z.
+
+This happens because the TTY: handler only
+has room for a 72 character buffer and so
+this is the longest line you can enter this
+way.
+
+I used this feature to get CONSYS.PA and
+CONNON.PA onto the CSD1: platter so I could
+compile them with real PAL8.
+
+
