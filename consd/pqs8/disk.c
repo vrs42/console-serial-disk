@@ -433,8 +433,8 @@ int patch_bt;	/* flag to indicate if the boot block needs to be patched with the
   /* Check for a SLURP loader. */
   if( csd_dsk[0][0100][0177] != 0 ) {
     fprintf( stderr, "SERVER: SLURP loader detected: %05o\r\n", csd_dsk[0][0100][0177] );
-//  csd_dsk[0][0100][0177]  = 0;
-//  fprintf( stderr, "SERVER: SLURP loader disabled\r\n" );
+    csd_dsk[0][0100][0177]  = 0;
+    fprintf( stderr, "SERVER: SLURP loader disabled\r\n" );
   }
 #else
 #ifdef OS8
