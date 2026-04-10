@@ -18,16 +18,3 @@ recvtst: recvtst.c pdp.c
 # Could use bin2bn here
 pqscsd.bn: pqscsd.pa
 	pal -d $< && mv pqscsd.bin $@
-
-# We don't save foo.sv as pqscsd.sv.
-# (The PQS8 build has a file by that name.)
-pqscsd.sd: pqscsd.bn
-	bn2sv $<
-	sv2sd foo.sv
-	mv foo.sd $@ && rm foo.sv
-
-pqscsd.dd: pqscsd.sd
-	dd if=$< of=$@ bs=8448 skip=1
-
-csd.dsk: pqscsd.dd noboot
-	cat pqscsd.dd noboot >$@
