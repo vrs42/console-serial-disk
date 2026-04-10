@@ -123,10 +123,7 @@ Here is a sequence to assemble and run a simple program:
 .LIST
 450	$
 .WRITE FOO
-.PAL B<FOO
-.GET B
-.START
-BUGBUG: TODO: Fix this to be a working example!
+.PAL FOO=200
 
 
 
