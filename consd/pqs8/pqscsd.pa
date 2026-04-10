@@ -1,0 +1,196 @@
+/ PQS8 Handler for Console Serial Disk.
+WRITE=	4000
+PERFIL= 20	/ Block # for "%" file
+KBDMON=	0353	/ Start keyboard monitor here
+
+/ Note that we do not provide a SLURP loader. This
+/ means that offset 0177 of SLPBLK must be zero!
+SLPBLK=	100	/ SLURP loader block
+
+/ Set up for the loading of the unconfigured driver, and
+/ the running of the configured driver.
+	FIELD 1
+	*7400
+	NOPUNCH
+	FIELD 0
+	ENPUNCH
+	RELOC 7600
+
+/ Set up the reboot. Reboot reloads the last page, and
+/ also part of the PQS8 keyboard monitor into 00000-03577.
+SBOOT,	JMS SYSIO	/ Call for I/O
+	SBOOT		/ Buffer address
+	2000		/ Function word, big read
+	0000		/ Start with block 0
+
+/ Note: Reloading this page during boot will clobber the
+/ return address above, causing a branch to KBDMON, rather
+/ than a return to here.
+
+/ We digress here (and elsewhere) to describe locations reserved
+/ for non-driver use. Mostly because the documentation is otherwise
+/ difficult to find. (Some drivers do use (some of) the reserved areas
+/ for once-only initialization.)
+/ Reserved locations:
+	ZBLOCK 7604-.	/ Must go here
+SWAL,	.-.		/ Switches /A to /L
+SWMX,	.-.		/ Switches /M to /X
+SWY9,	.-.		/ Switches /Y to /9
+
+SOUTCT,	.-.		/ Output file count
+			/ Bit 0 set if shell enabled
+			/ Bits 1-6 set high system date
+			/ Bits 7-11 contain the output file count (0-17)
+
+/ TODO: Verify the bits in the date words.
+/ The date seems to be 6+12 bits long, and is basically
+/ 372*YR + 31*MO + DY, where YR is year-2016, MO is 0-11, and DY is 0-30.
+/ For instance, 007345 is 3813, divided by 372(10) gives 10, remainder 93.
+/ 93/31 = 3, remainder 0.
+SDATE,	.-.		/ Low 12 bits of the date
+
+SCORE,	7770		/ Amount of memory present
+			/ Bits 0-2 Highest field present (physical)
+			/ Bits 3-5 Highest logical field allowed
+			/ Bits 6-8 Current logical field allowed
+			/ Bit 9 Use Logical Console Overlay
+			/ Bit 10 Use Logical ^B Status
+			/ Bit 11 Use Logical ^C Status
+
+/ Back to driver code for a moment...
+SEND8,	.-.		/ Return Address
+	TSF		/ Wait for ready
+	JMP .-1
+	TLS		/ Send the byte
+	JMP I SEND8	/Return to caller
+SEND12,	.-.		/ Return address
+	JMS SEND8	/ Send lower 8
+	CLL RTR		/ Shift down 4 bits
+	RTR
+	JMS SEND8	/ Send upper 8 bits
+	CLA CLL		/ Clean up
+	JMP I SEND12	/ Return to caller
+TSFSET,	.-.		/ Remeber if TFS flag was set
+KSFSET,	.-.		/ Remeber if KFS flag was set
+
+	7632-.		/ FYI: Number of available words
+
+/ The system loader comes pre-initialized to save field 0
+	ZBLOCK 7632-.	/ Must go here
+SLOAD,	JMS SYSIO	/ Do a write
+SLDADD,	0000		/ From location 0
+SFUN,	100!WRITE	/ field 0, 32 pages, unit 0
+SLDBLK,	PERFIL		/ To "%"
+	JMP I SSTART
+SSTART,	SBOOT		/ Startup address; reboot
+
+/ Here's the main entry. AC, LINK, etc. should be ignored,
+/ and the parameters follow the call. DF must be the IF of
+/ the caller.
+/ In theory, the value of interrupt enable must be preserved.
+/ In practice, this is quite difficult to do in a Family-of-8
+/ way.  We'd have to preserve locations 00000-00001, and set
+/ them to 0000, 5400. Then, at exit, we'd have to inspect 00000
+/ to note if an interrupt had occurred. We'd have to restore
+/ 00000-00001, turn interrupts back on (with our own flags
+/ restored) iff an interrupt had occurred, and then return.
+/ No known existing driver does all that.
+/ As it is, just call the driver with interrupts off.
+	ZBLOCK 7640-.	/ Driver main entry must go here
+SYSIO,	KBDMON		/ Preloaded for bootstrap
+	CLA CLL CMA	/ Get known AC
+	DCA TSFSET	/ Set virtual TFS flag
+	TAD BDTIME	/ Initialize timer counter
+	DCA GET12
+BDLP,	TSF		/ Teleprinter flag set?
+	SKP
+	JMP WAKEUP	/ Yes, proceed
+	ISZ GET12	/ No, Bump timer
+	JMP BDLP	/ ...and wait
+	ISZ TSFSET	/ Clear TSFSET, then skip
+BDTIME,	7530		/ Character timeout constant
+WAKEUP,	RDF		/ Get the caller's DF
+	CLL RTR		/ Shift down
+	RAR
+	TAD WAKUP	/ Form wakeup command
+	TLS		/ Switch server to file mode
+	CLA		/ Clean AC
+/ At this point incoming characters will be from the server,
+/ and not from the terminal emulation.
+/ Remember the state of the terminal KSF flag for later.
+	CLA CMA		/ Get potential value
+	KSF		/ Keyboard flag on?
+	IAC		/ No, clear the value
+	DCA KSFSET	/ Remember the value
+	KRB		/ Read Keyboard Buffer
+	JMS SEND8	/ ...and send it to the server
+/ Now enter a command loop, responding to the server.
+/ (Basically the commands tell us to pretend to do DMA.)
+CMDLP,	JMS GET12	/ Get Current Address part of the command
+	DCA CA
+	JMS GET12	/ Get the Word Count part of the command
+	DCA WC
+	JMS GET12	/ Get the command
+	SMA		/ Is it a JMP?
+	JMP RDWR	/ No, do read or write
+	DCA FARJMP	/ Yes, save the CIF CDF command
+	ISZ TSFSET	/ Leave TFS set?
+	TCF		/ No
+	KSF		/ Wait for the server to resend
+	JMP .-1		/ the last keyboard character
+	ISZ KSFSET	/ Leave KSF set?
+	KCC		/ No
+FARJMP,	.-.		/ CIF CDF to return field
+	TAD WC		/ Get AC return (not used?)
+	JMP I CA	/ Return to the calller
+/ For reads and writes, which it is is in AC, along
+/ with a rotated CDF instruction.
+RDWR,	CLL RTL		/ Assemble CDF, WRITE to LINK
+	IAC
+	DCA .+1		/ Do the relevant CDF
+	.-.	
+	SZL		/ Read or Write memory?
+	JMP RDMEM	/ Read, go do it
+WRMEM,	JMS GET12	/ Get a data word
+	DCA I CA	/ Store it
+	ISZ CA		/ Bump pointer
+WAKUP,	020		/ Wakeup character constant
+	ISZ WC		/ Bump word count
+	JMP WRMEM	/ Not done, go again
+	JMP CMDLP	/ Done, go get next command
+RDMEM,	TAD I CA	/ Get a data word
+	JMS SEND12	/ Send it to server
+	ISZ CA
+	NOP		/ Could put constant here
+	ISZ WC		/ Bump word count
+	JMP RDMEM	/ Not done, go again
+	JMP CMDLP	/ Done, go get next command
+GET12,	.-.		/ Return address
+	KSF		/ Wait for data
+	JMP .-1
+	KRB		/ Get high bits
+	CLL RTL		/ Shift up 4 bits
+	RTL
+	DCA SEND8	/ Save for now
+	KSF		/ Wait for data
+	JMP .-1
+	KRB		/ Get low bits
+	TAD SEND8	/ Merge high bits
+	JMP I GET12	/ Return to caller
+CA,	.		/ Current Address, preloaded
+WC,	4000+.-7600	/ Word Count, preloaded
+
+	7756-.		/ FYI: Number of available words
+
+/ PQS8 generally makes RIM available here, except when a
+/ program is being run. When a program is run, these are
+/ overlaid with the "=" parameter, if any, and the file
+/ specifications, if any. (Some drivers place once only
+/ initialization here.)
+	ZBLOCK 7756-.	/ Must go here
+SEQUAL,	.-.
+SFILES,	ZBLOCK 7777-.+1	/ One word per file (first block)
+			/ Zero means no file given
+			/ Length is always 2K words
+	RELOC		/ Reset relocation
+$

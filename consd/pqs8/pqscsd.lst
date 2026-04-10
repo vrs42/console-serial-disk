@@ -1,0 +1,249 @@
+   1               / PQS8 Handler for Console Serial Disk.
+   2               WRITE=  4000
+   3               PERFIL= 20      / Block # for "%" file
+   4               KBDMON= 0353    / Start keyboard monitor here
+   5               
+   6               / Note that we do not provide a SLURP loader. This
+   7               / means that offset 0177 of SLPBLK must be zero!
+   8               SLPBLK= 100     / SLURP loader block
+   9               
+  10               / Set up for the loading of the unconfigured driver, and
+  11               / the running of the configured driver.
+  12                       FIELD 1
+  13                       *7400
+  14                       NOPUNCH
+  15                       FIELD 0
+  16                       ENPUNCH
+  17                       RELOC 7600
+  18               
+  19               / Set up the reboot. Reboot reloads the last page, and
+  20               / also part of the PQS8 keyboard monitor into 00000-03577.
+  21 007600* 4240  SBOOT,  JMS SYSIO       / Call for I/O
+  22 007601* 7600          SBOOT           / Buffer address
+  23 007602* 2000          2000            / Function word, big read
+  24 007603* 0000          0000            / Start with block 0
+  25               
+  26               / Note: Reloading this page during boot will clobber the
+  27               / return address above, causing a branch to KBDMON, rather
+  28               / than a return to here.
+  29               
+  30               / We digress here (and elsewhere) to describe locations reserved
+  31               / for non-driver use. Mostly because the documentation is otherwise
+  32               / difficult to find. (Some drivers do use (some of) the reserved areas
+  33               / for once-only initialization.)
+  34               / Reserved locations:
+  35                       ZBLOCK 7604-.   / Must go here
+  36 007604* 0000  SWAL,   .-.             / Switches /A to /L
+  37 007605* 0000  SWMX,   .-.             / Switches /M to /X
+  38 007606* 0000  SWY9,   .-.             / Switches /Y to /9
+  39               
+  40 007607* 0000  SOUTCT, .-.             / Output file count
+  41                                       / Bit 0 set if shell enabled
+  42                                       / Bits 1-6 set high system date
+  43                                       / Bits 7-11 contain the output file count (0-17)
+  44               
+  45               / TODO: Verify the bits in the date words.
+  46               / The date seems to be 6+12 bits long, and is basically
+  47               / 372*YR + 31*MO + DY, where YR is year-2016, MO is 0-11, and DY is 0-30.
+  48               / For instance, 007345 is 3813, divided by 372(10) gives 10, remainder 93.
+  49               / 93/31 = 3, remainder 0.
+  50 007610* 0000  SDATE,  .-.             / Low 12 bits of the date
+  51               
+  52 007611* 7770  SCORE,  7770            / Amount of memory present
+  53                                       / Bits 0-2 Highest field present (physical)
+  54                                       / Bits 3-5 Highest logical field allowed
+  55                                       / Bits 6-8 Current logical field allowed
+  56                                       / Bit 9 Use Logical Console Overlay
+  57                                       / Bit 10 Use Logical ^B Status
+  58                                       / Bit 11 Use Logical ^C Status
+  59               
+  60               / Back to driver code for a moment...
+  61 007612* 0000  SEND8,  .-.             / Return Address
+  62 007613* 6041          TSF             / Wait for ready
+  63 007614* 5213          JMP .-1
+  64 007615* 6046          TLS             / Send the byte
+  65 007616* 5612          JMP I SEND8     /Return to caller
+  66 007617* 0000  SEND12, .-.             / Return address
+  67 007620* 4212          JMS SEND8       / Send lower 8
+  68 007621* 7112          CLL RTR         / Shift down 4 bits
+  69 007622* 7012          RTR
+  70 007623* 4212          JMS SEND8       / Send upper 8 bits
+  71 007624* 7300          CLA CLL         / Clean up
+  72 007625* 5617          JMP I SEND12    / Return to caller
+  73 007626* 0000  TSFSET, .-.             / Remeber if TFS flag was set
+  74 007627* 0000  KSFSET, .-.             / Remeber if KFS flag was set
+  75               
+  76 007630* 0002          7632-.          / FYI: Number of available words
+  77               
+  78               / The system loader comes pre-initialized to save field 0
+  79 007631* 0000          ZBLOCK 7632-.   / Must go here
+  80 007632* 4240  SLOAD,  JMS SYSIO       / Do a write
+  81 007633* 0000  SLDADD, 0000            / From location 0
+  82 007634* 4100  SFUN,   100!WRITE       / field 0, 32 pages, unit 0
+  83 007635* 0020  SLDBLK, PERFIL          / To "%"
+  84 007636* 5637          JMP I SSTART
+  85 007637* 7600  SSTART, SBOOT           / Startup address; reboot
+  86               
+  87               / Here's the main entry. AC, LINK, etc. should be ignored,
+  88               / and the parameters follow the call. DF must be the IF of
+  89               / the caller.
+  90               / In theory, the value of interrupt enable must be preserved.
+  91               / In practice, this is quite difficult to do in a Family-of-8
+  92               / way.  We'd have to preserve locations 00000-00001, and set
+  93               / them to 0000, 5400. Then, at exit, we'd have to inspect 00000
+  94               / to note if an interrupt had occurred. We'd have to restore
+  95               / 00000-00001, turn interrupts back on (with our own flags
+  96               / restored) iff an interrupt had occurred, and then return.
+  97               / No known existing driver does all that.
+  98               / As it is, just call the driver with interrupts off.
+  99                       ZBLOCK 7640-.   / Driver main entry must go here
+ 100 007640* 0353  SYSIO,  KBDMON          / Preloaded for bootstrap
+ 101 007641* 7340          CLA CLL CMA     / Get known AC
+ 102 007642* 3226          DCA TSFSET      / Set virtual TFS flag
+ 103 007643* 1253          TAD BDTIME      / Initialize timer counter
+ 104 007644* 3335          DCA GET12
+ 105 007645* 6041  BDLP,   TSF             / Teleprinter flag set?
+ 106 007646* 7410          SKP
+ 107 007647* 5254          JMP WAKEUP      / Yes, proceed
+ 108 007650* 2335          ISZ GET12       / No, Bump timer
+ 109 007651* 5245          JMP BDLP        / ...and wait
+ 110 007652* 2226          ISZ TSFSET      / Clear TSFSET, then skip
+ 111 007653* 7530  BDTIME, 7530            / Character timeout constant
+ 112 007654* 6214  WAKEUP, RDF             / Get the caller's DF
+ 113 007655* 7112          CLL RTR         / Shift down
+ 114 007656* 7010          RAR
+ 115 007657* 1322          TAD WAKUP       / Form wakeup command
+ 116 007660* 6046          TLS             / Switch server to file mode
+ 117 007661* 7200          CLA             / Clean AC
+ 118               / At this point incoming characters will be from the server,
+ 119               / and not from the terminal emulation.
+ 120               / Remember the state of the terminal KSF flag for later.
+ 121 007662* 7240          CLA CMA         / Get potential value
+ 122 007663* 6031          KSF             / Keyboard flag on?
+ 123 007664* 7001          IAC             / No, clear the value
+ 124 007665* 3227          DCA KSFSET      / Remember the value
+ 125 007666* 6036          KRB             / Read Keyboard Buffer
+ 126 007667* 4212          JMS SEND8       / ...and send it to the server
+ 127               / Now enter a command loop, responding to the server.
+ 128               / (Basically the commands tell us to pretend to do DMA.)
+ 129 007670* 4335  CMDLP,  JMS GET12       / Get Current Address part of the command
+ 130 007671* 3351          DCA CA
+ 131 007672* 4335          JMS GET12       / Get the Word Count part of the command
+ 132 007673* 3352          DCA WC
+ 133 007674* 4335          JMS GET12       / Get the command
+ 134 007675* 7500          SMA             / Is it a JMP?
+ 135 007676* 5311          JMP RDWR        / No, do read or write
+ 136 007677* 3306          DCA FARJMP      / Yes, save the CIF CDF command
+ 137 007700* 2226          ISZ TSFSET      / Leave TFS set?
+ 138 007701* 6042          TCF             / No
+ 139 007702* 6031          KSF             / Wait for the server to resend
+ 140 007703* 5302          JMP .-1         / the last keyboard character
+ 141 007704* 2227          ISZ KSFSET      / Leave KSF set?
+ 142 007705* 6032          KCC             / No
+ 143 007706* 0000  FARJMP, .-.             / CIF CDF to return field
+ 144 007707* 1352          TAD WC          / Get AC return (not used?)
+ 145 007710* 5751          JMP I CA        / Return to the calller
+ 146               / For reads and writes, which it is is in AC, along
+ 147               / with a rotated CDF instruction.
+ 148 007711* 7106  RDWR,   CLL RTL         / Assemble CDF, WRITE to LINK
+ 149 007712* 7001          IAC
+ 150 007713* 3314          DCA .+1         / Do the relevant CDF
+ 151 007714* 0000          .-.     
+ 152 007715* 7430          SZL             / Read or Write memory?
+ 153 007716* 5326          JMP RDMEM       / Read, go do it
+ 154 007717* 4335  WRMEM,  JMS GET12       / Get a data word
+ 155 007720* 3751          DCA I CA        / Store it
+ 156 007721* 2351          ISZ CA          / Bump pointer
+ 157 007722* 0020  WAKUP,  020             / Wakeup character constant
+ 158 007723* 2352          ISZ WC          / Bump word count
+ 159 007724* 5317          JMP WRMEM       / Not done, go again
+ 160 007725* 5270          JMP CMDLP       / Done, go get next command
+ 161 007726* 1751  RDMEM,  TAD I CA        / Get a data word
+ 162 007727* 4217          JMS SEND12      / Send it to server
+ 163 007730* 2351          ISZ CA
+ 164 007731* 7000          NOP             / Could put constant here
+ 165 007732* 2352          ISZ WC          / Bump word count
+ 166 007733* 5326          JMP RDMEM       / Not done, go again
+ 167 007734* 5270          JMP CMDLP       / Done, go get next command
+ 168 007735* 0000  GET12,  .-.             / Return address
+ 169 007736* 6031          KSF             / Wait for data
+ 170 007737* 5336          JMP .-1
+ 171 007740* 6036          KRB             / Get high bits
+ 172 007741* 7106          CLL RTL         / Shift up 4 bits
+ 173 007742* 7006          RTL
+ 174 007743* 3212          DCA SEND8       / Save for now
+ 175 007744* 6031          KSF             / Wait for data
+ 176 007745* 5344          JMP .-1
+ 177 007746* 6036          KRB             / Get low bits
+ 178 007747* 1212          TAD SEND8       / Merge high bits
+ 179 007750* 5735          JMP I GET12     / Return to caller
+ 180 007751* 7751  CA,     .               / Current Address, preloaded
+ 181 007752* 4152  WC,     4000+.-7600     / Word Count, preloaded
+ 182               
+ 183 007753* 0003          7756-.          / FYI: Number of available words
+ 184               
+ 185               / PQS8 generally makes RIM available here, except when a
+ 186               / program is being run. When a program is run, these are
+ 187               / overlaid with the "=" parameter, if any, and the file
+ 188               / specifications, if any. (Some drivers place once only
+ 189               / initialization here.)
+ 190 007754* 0000          ZBLOCK 7756-.   / Must go here
+     007755* 0000  
+ 191 007756* 0000  SEQUAL, .-.
+ 192 007757* 0000  SFILES, ZBLOCK 7777-.+1 / One word per file (first block)
+     007760* 0000  
+     007761* 0000  
+     007762* 0000  
+     007763* 0000  
+     007764* 0000  
+     007765* 0000  
+     007766* 0000  
+     007767* 0000  
+     007770* 0000  
+     007771* 0000  
+     007772* 0000  
+     007773* 0000  
+     007774* 0000  
+     007775* 0000  
+     007776* 0000  
+     007777* 0000  
+ 193                                       / Zero means no file given
+ 194                                       / Length is always 2K words
+ 195                       RELOC           / Reset relocation
+ 196               $
+
+BDLP    7645
+BDTIME  7653
+CA      7751
+CMDLP   7670
+FARJMP  7706
+GET12   7735
+KBDMON  0353
+KSFSET  7627
+PERFIL  0020
+RDMEM   7726
+RDWR    7711
+SBOOT   7600
+SCORE   7611 unreferenced
+SDATE   7610 unreferenced
+SEND12  7617
+SEND8   7612
+SEQUAL  7756 unreferenced
+SFILES  7757 unreferenced
+SFUN    7634 unreferenced
+SLDADD  7633 unreferenced
+SLDBLK  7635 unreferenced
+SLOAD   7632 unreferenced
+SLPBLK  0100 unreferenced
+SOUTCT  7607 unreferenced
+SSTART  7637
+SWAL    7604 unreferenced
+SWMX    7605 unreferenced
+SWY9    7606 unreferenced
+SYSIO   7640
+TSFSET  7626
+WAKEUP  7654
+WAKUP   7722
+WC      7752
+WRITE   4000
+WRMEM   7717
