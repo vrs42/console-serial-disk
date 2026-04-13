@@ -86,22 +86,7 @@ int btcode[047]={	/* boot block boot code for verification. */
 
 #ifdef PQS8
 int hndcode[]={	/* SYS Handler loads from 07600 through 07777	*/
-04240, 07600, 02000, 00000, 00000, 00000, 00000, 00000,
-00000, 07770, 00000, 06041, 05213, 06046, 05612, 00000,
-04212, 07112, 07012, 04212, 07300, 05617, 00000, 00000,
-00002, 00000, 04240, 00000, 04100, 00020, 05637, 07600,
-00353, 07340, 03226, 01253, 03335, 06041, 07410, 05254,
-02335, 05245, 02226, 07530, 06214, 07112, 07010, 01322,
-06046, 07200, 07240, 06031, 07001, 03227, 06036, 04212,
-04335, 03351, 04335, 03352, 04335, 07500, 05311, 03306,
-02226, 06042, 06031, 05302, 02227, 06032, 00000, 01352,
-05751, 07106, 07001, 03314, 00000, 07430, 05326, 04335,
-03751, 02351, 00020, 02352, 05317, 05270, 01751, 04217,
-02351, 07000, 02352, 05326, 05270, 00000, 06031, 05336,
-06036, 07106, 07006, 03212, 06031, 05344, 06036, 01212,
-05735, 07751, 04152, 00003, 00000, 00000, 00000, 00000,
-00000, 00000, 00000, 00000, 00000, 00000, 00000, 00000,
-00000, 00000, 00000, 00000, 00000, 00000, 00000, 00000,
+#include "pqscsd.h"
 };
 #else
 #ifdef OS8
@@ -217,12 +202,35 @@ int hndcode[0144]={	/* SYS Handler loads from 07607 through 07743	*/
 #endif
 #endif
 
+/*
+ * Compute a handler checksum
+*/
+int cksum(blk)
+int *blk;
+{
+  int i, k = 0;
+#ifdef PQS8
+  for( i=0000; i<0004; i++ ){
+    k=k+blk[i];
+  }
+  for( i=0012; i<0156; i++ ){
+    k=k+blk[i];
+  }
+#else
+  for( i=0207; i<0343; i++ ){
+    k=k+blk[i];
+  }
+#endif
+  return k;
+}
+
 void disk_open()
 {
 int d;		/* walk through devices */
 int blk;	/* walk through blocks */
 int i,j,k;	/* indexes and temps */
 int patch_bt;	/* flag to indicate if the boot block needs to be patched with the handler */
+int hndsum;	/* checksum for current CSD driver */
 
   /* open the CSD images */
   for( d=0; d<CSD_MAX; d++ ){
@@ -345,30 +353,17 @@ int patch_bt;	/* flag to indicate if the boot block needs to be patched with the
 
   if( debug_mode )
     fprintf( stderr, "SERVER: Calculating installed handler checksum.\r\n" );
-
-  k=0;
-#ifdef PQS8
-  for( i=0000; i<0004; i++ ){
-    k=k+csd_dsk[0][0][i];
-  }
-  for( i=0012; i<0156; i++ ){
-    k=k+csd_dsk[0][0][i];
-  }
-#else
-  for( i=0207; i<0343; i++ ){
-    k=k+csd_dsk[0][0][i];
-  }
-#endif
+  hndsum = cksum(hndcode);
+  k=cksum(csd_dsk[0][0]);
   if( debug_mode )
     fprintf( stderr, "SERVER: Installed handler checksum = %d.\r\n", k );
 
   patch_bt=1;	/* do the patch unless turned off */
-  switch( k ){
-#ifdef PQS8
-  case 227550:	/* PQS8 CSD handler */
-    fprintf( stderr, "SERVER: %s appears to have the PQS8 CSD handler\r\n", csd_name[0] );
+  if( k == hndsum) {
+    fprintf( stderr, "SERVER: %s appears to have the latest CSD handler\r\n", csd_name[0] );
     patch_bt=0;	/* BUGBUG: don't need to patch the boot block */
-    break;
+  } else switch( k ) {
+#ifdef PQS8
   case 231229:	/* PQS8 DECtape handler */
     fprintf( stderr, "SERVER: %s appears to have the PQS8 DTA handler cksum=%d.\r\n", csd_name[0], k );
     patch_bt=1;	/* Need to patch the boot block */

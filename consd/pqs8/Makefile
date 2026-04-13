@@ -1,12 +1,9 @@
-all:	csd loopback recvtst csd0.img
-
-csd0.img: csd.dsk
-	cp $< $@
+all:	csd loopback recvtst pqscsd.bn
 
 clean:
 	rm csd loopback recvtst
 
-csd: csd.c boot.c pdp.c tty.c disk.c
+csd: csd.c boot.c pdp.c tty.c disk.c pqscsd.h
 	cc csd.c -o csd
 
 loopback: loopback.c
@@ -18,3 +15,6 @@ recvtst: recvtst.c pdp.c
 # Could use bin2bn here
 pqscsd.bn: pqscsd.pa
 	pal -d $< && mv pqscsd.bin $@
+
+pqscsd.h: pqscsd.bn
+	./bn2h $< >$@

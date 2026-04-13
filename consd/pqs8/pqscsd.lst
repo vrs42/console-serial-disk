@@ -98,99 +98,99 @@
   98               / As it is, just call the driver with interrupts off.
   99                       ZBLOCK 7640-.   / Driver main entry must go here
  100 007640* 0353  SYSIO,  KBDMON          / Preloaded for bootstrap
- 101 007641* 7340          CLA CLL CMA     / Get known AC
- 102 007642* 3226          DCA TSFSET      / Set virtual TFS flag
- 103 007643* 1253          TAD BDTIME      / Initialize timer counter
- 104 007644* 3335          DCA GET12
- 105 007645* 6041  BDLP,   TSF             / Teleprinter flag set?
- 106 007646* 7410          SKP
- 107 007647* 5254          JMP WAKEUP      / Yes, proceed
- 108 007650* 2335          ISZ GET12       / No, Bump timer
- 109 007651* 5245          JMP BDLP        / ...and wait
- 110 007652* 2226          ISZ TSFSET      / Clear TSFSET, then skip
- 111 007653* 7530  BDTIME, 7530            / Character timeout constant
- 112 007654* 6214  WAKEUP, RDF             / Get the caller's DF
- 113 007655* 7112          CLL RTR         / Shift down
- 114 007656* 7010          RAR
- 115 007657* 1322          TAD WAKUP       / Form wakeup command
- 116 007660* 6046          TLS             / Switch server to file mode
- 117 007661* 7200          CLA             / Clean AC
- 118               / At this point incoming characters will be from the server,
- 119               / and not from the terminal emulation.
- 120               / Remember the state of the terminal KSF flag for later.
- 121 007662* 7240          CLA CMA         / Get potential value
- 122 007663* 6031          KSF             / Keyboard flag on?
- 123 007664* 7001          IAC             / No, clear the value
- 124 007665* 3227          DCA KSFSET      / Remember the value
- 125 007666* 6036          KRB             / Read Keyboard Buffer
- 126 007667* 4212          JMS SEND8       / ...and send it to the server
- 127               / Now enter a command loop, responding to the server.
- 128               / (Basically the commands tell us to pretend to do DMA.)
- 129 007670* 4335  CMDLP,  JMS GET12       / Get Current Address part of the command
- 130 007671* 3351          DCA CA
- 131 007672* 4335          JMS GET12       / Get the Word Count part of the command
- 132 007673* 3352          DCA WC
- 133 007674* 4335          JMS GET12       / Get the command
- 134 007675* 7500          SMA             / Is it a JMP?
- 135 007676* 5311          JMP RDWR        / No, do read or write
- 136 007677* 3306          DCA FARJMP      / Yes, save the CIF CDF command
- 137 007700* 2226          ISZ TSFSET      / Leave TFS set?
- 138 007701* 6042          TCF             / No
- 139 007702* 6031          KSF             / Wait for the server to resend
- 140 007703* 5302          JMP .-1         / the last keyboard character
- 141 007704* 2227          ISZ KSFSET      / Leave KSF set?
- 142 007705* 6032          KCC             / No
- 143 007706* 0000  FARJMP, .-.             / CIF CDF to return field
- 144 007707* 1352          TAD WC          / Get AC return (not used?)
- 145 007710* 5751          JMP I CA        / Return to the calller
- 146               / For reads and writes, which it is is in AC, along
- 147               / with a rotated CDF instruction.
- 148 007711* 7106  RDWR,   CLL RTL         / Assemble CDF, WRITE to LINK
- 149 007712* 7001          IAC
- 150 007713* 3314          DCA .+1         / Do the relevant CDF
- 151 007714* 0000          .-.     
- 152 007715* 7430          SZL             / Read or Write memory?
- 153 007716* 5326          JMP RDMEM       / Read, go do it
- 154 007717* 4335  WRMEM,  JMS GET12       / Get a data word
- 155 007720* 3751          DCA I CA        / Store it
- 156 007721* 2351          ISZ CA          / Bump pointer
- 157 007722* 0020  WAKUP,  020             / Wakeup character constant
- 158 007723* 2352          ISZ WC          / Bump word count
- 159 007724* 5317          JMP WRMEM       / Not done, go again
- 160 007725* 5270          JMP CMDLP       / Done, go get next command
- 161 007726* 1751  RDMEM,  TAD I CA        / Get a data word
- 162 007727* 4217          JMS SEND12      / Send it to server
- 163 007730* 2351          ISZ CA
- 164 007731* 7000          NOP             / Could put constant here
- 165 007732* 2352          ISZ WC          / Bump word count
- 166 007733* 5326          JMP RDMEM       / Not done, go again
- 167 007734* 5270          JMP CMDLP       / Done, go get next command
- 168 007735* 0000  GET12,  .-.             / Return address
- 169 007736* 6031          KSF             / Wait for data
- 170 007737* 5336          JMP .-1
- 171 007740* 6036          KRB             / Get high bits
- 172 007741* 7106          CLL RTL         / Shift up 4 bits
- 173 007742* 7006          RTL
- 174 007743* 3212          DCA SEND8       / Save for now
- 175 007744* 6031          KSF             / Wait for data
- 176 007745* 5344          JMP .-1
- 177 007746* 6036          KRB             / Get low bits
- 178 007747* 1212          TAD SEND8       / Merge high bits
- 179 007750* 5735          JMP I GET12     / Return to caller
- 180 007751* 7751  CA,     .               / Current Address, preloaded
- 181 007752* 4152  WC,     4000+.-7600     / Word Count, preloaded
- 182               
- 183 007753* 0003          7756-.          / FYI: Number of available words
- 184               
- 185               / PQS8 generally makes RIM available here, except when a
- 186               / program is being run. When a program is run, these are
- 187               / overlaid with the "=" parameter, if any, and the file
- 188               / specifications, if any. (Some drivers place once only
- 189               / initialization here.)
- 190 007754* 0000          ZBLOCK 7756-.   / Must go here
-     007755* 0000  
- 191 007756* 0000  SEQUAL, .-.
- 192 007757* 0000  SFILES, ZBLOCK 7777-.+1 / One word per file (first block)
+ 101 007641* 6002          IOF             / Turn off pesky interrupts
+ 102 007642* 7340          CLA CLL CMA     / Get known AC
+ 103 007643* 3226          DCA TSFSET      / Set virtual TFS flag
+ 104 007644* 1254          TAD BDTIME      / Initialize timer counter
+ 105 007645* 3336          DCA GET12
+ 106 007646* 6041  BDLP,   TSF             / Teleprinter flag set?
+ 107 007647* 7410          SKP
+ 108 007650* 5255          JMP WAKEUP      / Yes, proceed
+ 109 007651* 2336          ISZ GET12       / No, Bump timer
+ 110 007652* 5246          JMP BDLP        / ...and wait
+ 111 007653* 2226          ISZ TSFSET      / Clear TSFSET, then skip
+ 112 007654* 7530  BDTIME, 7530            / Character timeout constant
+ 113 007655* 6214  WAKEUP, RDF             / Get the caller's DF
+ 114 007656* 7112          CLL RTR         / Shift down
+ 115 007657* 7010          RAR
+ 116 007660* 1323          TAD WAKUP       / Form wakeup command
+ 117 007661* 6046          TLS             / Switch server to file mode
+ 118 007662* 7200          CLA             / Clean AC
+ 119               / At this point incoming characters will be from the server,
+ 120               / and not from the terminal emulation.
+ 121               / Remember the state of the terminal KSF flag for later.
+ 122 007663* 7240          CLA CMA         / Get potential value
+ 123 007664* 6031          KSF             / Keyboard flag on?
+ 124 007665* 7001          IAC             / No, clear the value
+ 125 007666* 3227          DCA KSFSET      / Remember the value
+ 126 007667* 6036          KRB             / Read Keyboard Buffer
+ 127 007670* 4212          JMS SEND8       / ...and send it to the server
+ 128               / Now enter a command loop, responding to the server.
+ 129               / (Basically the commands tell us to pretend to do DMA.)
+ 130 007671* 4336  CMDLP,  JMS GET12       / Get Current Address part of the command
+ 131 007672* 3352          DCA CA
+ 132 007673* 4336          JMS GET12       / Get the Word Count part of the command
+ 133 007674* 3353          DCA WC
+ 134 007675* 4336          JMS GET12       / Get the command
+ 135 007676* 7500          SMA             / Is it a JMP?
+ 136 007677* 5312          JMP RDWR        / No, do read or write
+ 137 007700* 3307          DCA FARJMP      / Yes, save the CIF CDF command
+ 138 007701* 2226          ISZ TSFSET      / Leave TFS set?
+ 139 007702* 6042          TCF             / No
+ 140 007703* 6031          KSF             / Wait for the server to resend
+ 141 007704* 5303          JMP .-1         / the last keyboard character
+ 142 007705* 2227          ISZ KSFSET      / Leave KSF set?
+ 143 007706* 6032          KCC             / No
+ 144 007707* 0000  FARJMP, .-.             / CIF CDF to return field
+ 145 007710* 1353          TAD WC          / Get AC return (not used?)
+ 146 007711* 5752          JMP I CA        / Return to the calller
+ 147               / For reads and writes, which it is is in AC, along
+ 148               / with a rotated CDF instruction.
+ 149 007712* 7106  RDWR,   CLL RTL         / Assemble CDF, WRITE to LINK
+ 150 007713* 7001          IAC
+ 151 007714* 3315          DCA .+1         / Do the relevant CDF
+ 152 007715* 0000          .-.     
+ 153 007716* 7430          SZL             / Read or Write memory?
+ 154 007717* 5327          JMP RDMEM       / Read, go do it
+ 155 007720* 4336  WRMEM,  JMS GET12       / Get a data word
+ 156 007721* 3752          DCA I CA        / Store it
+ 157 007722* 2352          ISZ CA          / Bump pointer
+ 158 007723* 0020  WAKUP,  020             / Wakeup character constant
+ 159 007724* 2353          ISZ WC          / Bump word count
+ 160 007725* 5320          JMP WRMEM       / Not done, go again
+ 161 007726* 5271          JMP CMDLP       / Done, go get next command
+ 162 007727* 1752  RDMEM,  TAD I CA        / Get a data word
+ 163 007730* 4217          JMS SEND12      / Send it to server
+ 164 007731* 2352          ISZ CA
+ 165 007732* 7000          NOP             / Could put constant here
+ 166 007733* 2353          ISZ WC          / Bump word count
+ 167 007734* 5327          JMP RDMEM       / Not done, go again
+ 168 007735* 5271          JMP CMDLP       / Done, go get next command
+ 169 007736* 0000  GET12,  .-.             / Return address
+ 170 007737* 6031          KSF             / Wait for data
+ 171 007740* 5337          JMP .-1
+ 172 007741* 6036          KRB             / Get high bits
+ 173 007742* 7106          CLL RTL         / Shift up 4 bits
+ 174 007743* 7006          RTL
+ 175 007744* 3212          DCA SEND8       / Save for now
+ 176 007745* 6031          KSF             / Wait for data
+ 177 007746* 5345          JMP .-1
+ 178 007747* 6036          KRB             / Get low bits
+ 179 007750* 1212          TAD SEND8       / Merge high bits
+ 180 007751* 5736          JMP I GET12     / Return to caller
+ 181 007752* 7752  CA,     .               / Current Address, preloaded
+ 182 007753* 4153  WC,     4000+.-7600     / Word Count, preloaded
+ 183               
+ 184 007754* 0002          7756-.          / FYI: Number of available words
+ 185               
+ 186               / PQS8 generally makes RIM available here, except when a
+ 187               / program is being run. When a program is run, these are
+ 188               / overlaid with the "=" parameter, if any, and the file
+ 189               / specifications, if any. (Some drivers place once only
+ 190               / initialization here.)
+ 191 007755* 0000          ZBLOCK 7756-.   / Must go here
+ 192 007756* 0000  SEQUAL, .-.
+ 193 007757* 0000  SFILES, ZBLOCK 7777-.+1 / One word per file (first block)
      007760* 0000  
      007761* 0000  
      007762* 0000  
@@ -207,22 +207,22 @@
      007775* 0000  
      007776* 0000  
      007777* 0000  
- 193                                       / Zero means no file given
- 194                                       / Length is always 2K words
- 195                       RELOC           / Reset relocation
- 196               $
+ 194                                       / Zero means no file given
+ 195                                       / Length is always 2K words
+ 196                       RELOC           / Reset relocation
+ 197               $
 
-BDLP    7645
-BDTIME  7653
-CA      7751
-CMDLP   7670
-FARJMP  7706
-GET12   7735
+BDLP    7646
+BDTIME  7654
+CA      7752
+CMDLP   7671
+FARJMP  7707
+GET12   7736
 KBDMON  0353
 KSFSET  7627
 PERFIL  0020
-RDMEM   7726
-RDWR    7711
+RDMEM   7727
+RDWR    7712
 SBOOT   7600
 SCORE   7611 unreferenced
 SDATE   7610 unreferenced
@@ -242,8 +242,8 @@ SWMX    7605 unreferenced
 SWY9    7606 unreferenced
 SYSIO   7640
 TSFSET  7626
-WAKEUP  7654
-WAKUP   7722
-WC      7752
+WAKEUP  7655
+WAKUP   7723
+WC      7753
 WRITE   4000
-WRMEM   7717
+WRMEM   7720

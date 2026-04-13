@@ -98,6 +98,7 @@ SSTART,	SBOOT		/ Startup address; reboot
 / As it is, just call the driver with interrupts off.
 	ZBLOCK 7640-.	/ Driver main entry must go here
 SYSIO,	KBDMON		/ Preloaded for bootstrap
+	IOF		/ Turn off pesky interrupts
 	CLA CLL CMA	/ Get known AC
 	DCA TSFSET	/ Set virtual TFS flag
 	TAD BDTIME	/ Initialize timer counter

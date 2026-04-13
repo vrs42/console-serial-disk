@@ -1,0 +1,6 @@
+This is the file that gets sent to the PDP-8
+when the F6 function key is pressed.  It is
+expected that something will be running and
+waiting for text from the console when F6 is
+pressed.  Unfortunately, I haven't got as
+suggestion for what to use there.
