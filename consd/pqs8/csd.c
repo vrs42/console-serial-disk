@@ -11,13 +11,14 @@
 #include <unistd.h>
 
 
-//#define PDP_SP		"/dev/ttyUSB0"
+/* If your can't use a symlink, you may have to change this */
 #define PDP_SP		"./ttyPDP"
+/* #define PDP_SP		"/dev/ttyUSB0" */
 
 #define PDP_BAUD	B19200
 
 /* use CSTOPB for 2 stop bits and 0 for one */
-#define PDP_STOP	0
+#define PDP_STOP	CSTOPB
 
 
 /* testing defines */

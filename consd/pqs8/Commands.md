@@ -44,7 +44,11 @@ is a unit number (0-7), can be used to specify which unit the file is on.
 Most contexts (including filenames) consider text to be monocase (uppercase
 or punctuation). (The representation is sixbit, to conserve memory.)
 
-All files in the TFS CAtalog are 2048 words long (16 blocks).
+All files in the TFS CAtalog are 2048 words long (16 blocks).  This 
+fixed size makes them more like "named chunks" than proper files; it
+is often necessary to break larger "files" into several chunks, which
+then each have get enumerated on the command line to describe the larger
+"file".
 
 The special filenames "%" and "$" are allocated outside the normal TFS
 file area.  They are placed early on the drive, which can dramatically
@@ -93,17 +97,24 @@ TDCOPY	TD8E DECtape copier
 VT	
 
 These are really programs you can run (if they are present). Most of
-these you have to know how to use, and spell the program name in it's
-entirety.
+these you have to know how to use, and spell the program name out in
+it's entirety.
 
-The most common are BATCH, BIN, CHANGE, DUMP, FIND, GET, START, and ODT.
-(These are written by default to new bootable media.)
+The system directory is more like a real directory, in that files
+(programs) can be different lengths, etc., but it is read only, in
+the sense that there are no commands or tools which implicitly
+update it.  This does make systems more consistent and harder to
+crash, but it also makes them much harder to enhance!
+
+The most common programs are BATCH, BIN, CHANGE, DUMP, FIND, GET,
+START, and ODT.  (These are written by default to new bootable media.)
 
 Note that only BLKCPY actually knows how to use non-system handlers!
+(But it doesn't seem to understand file names or directories.)
 
 Examples of commands of this type which you might commonly use include:
 
-.DATE 4/1/2026
+.DATE 4/15/2026
 .DIRECT/T/N
 .DIRECT/T/S/N
 .CORE
@@ -111,20 +122,33 @@ Examples of commands of this type which you might commonly use include:
 
 The first DIRECT command is similar to the built-in CAtalog, while the
 second lists the system catalog, which enumerates the system programs
-(the second category above).  Often the /T (terminal) option is helpful,
-as many programs default to output on the line printer. The /N option
-suppresses pagination, which may also be helpful.
+(the second category above).
+
+Often the /T (terminal) option is helpful, as many programs default to
+output on the line printer. The /N option suppresses pagination, which
+may also be helpful.
 
 
 
-Here is a sequence to assemble and run a simple program:
+Here is a sample command sequence to edit a file and make a modified version:
 
 .FETCH HELLOW
 .LIST
 450	$
 .WRITE FOO
-.PAL FOO=200
 
+
+Here is a command to assemble and run a simple program:
+
+.PAL HELLOW=200
+
+
+Here is a similar command to load and run a FOCAL program:
+
+.FOCAL HAMRAB/G
+
+Note that ^C returns to the monitor; use ^P to return the
+FOCAL command prompt.
 
 
 For more information, consult the "PQS8 Keyboard Monitor Command Guide.pdf"

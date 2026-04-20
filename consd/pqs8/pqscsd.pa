@@ -70,8 +70,8 @@ SEND12,	.-.		/ Return address
 	JMS SEND8	/ Send upper 8 bits
 	CLA CLL		/ Clean up
 	JMP I SEND12	/ Return to caller
-TSFSET,	.-.		/ Remeber if TFS flag was set
-KSFSET,	.-.		/ Remeber if KFS flag was set
+TSFSET,	.-.		/ Remember if TSF flag was set
+KSFSET,	.-.		/ Remember if KSF flag was set
 
 	7632-.		/ FYI: Number of available words
 
@@ -100,7 +100,7 @@ SSTART,	SBOOT		/ Startup address; reboot
 SYSIO,	KBDMON		/ Preloaded for bootstrap
 	IOF		/ Turn off pesky interrupts
 	CLA CLL CMA	/ Get known AC
-	DCA TSFSET	/ Set virtual TFS flag
+	DCA TSFSET	/ Set virtual TSF flag
 	TAD BDTIME	/ Initialize timer counter
 	DCA GET12
 BDLP,	TSF		/ Teleprinter flag set?
@@ -135,7 +135,7 @@ CMDLP,	JMS GET12	/ Get Current Address part of the command
 	SMA		/ Is it a JMP?
 	JMP RDWR	/ No, do read or write
 	DCA FARJMP	/ Yes, save the CIF CDF command
-	ISZ TSFSET	/ Leave TFS set?
+	ISZ TSFSET	/ Leave TSF set?
 	TCF		/ No
 	KSF		/ Wait for the server to resend
 	JMP .-1		/ the last keyboard character
@@ -193,5 +193,9 @@ SEQUAL,	.-.
 SFILES,	ZBLOCK 7777-.+1	/ One word per file (first block)
 			/ Zero means no file given
 			/ Length is always 2K words
+			/ Bits 0-7 specify the starting block
+			/ (Always a multiple of 16!)
+			/ Bit 8 is reserved
+			/ Bits 9-11 specify the unit number
 	RELOC		/ Reset relocation
 $
