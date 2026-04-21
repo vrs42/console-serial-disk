@@ -56,7 +56,7 @@ int i,l;
 #ifdef PQS8
   /* Load WC, CA, and BTTMP redundantly, then a branch to 07600. */
   pdp_put12(07773); pdp_put12(00001); pdp_put12(00000);
-  pdp_put12(05403); pdp_put12(07600);
+  pdp_put12(05404); pdp_put12(07600);
   /* At this point, WC wraps, causing a restart at 00003. */
   /* We've just placed a JMP at 00003, which will start the O/S. */
 sleep(1);

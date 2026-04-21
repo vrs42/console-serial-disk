@@ -70,8 +70,8 @@
   70 007623* 4212          JMS SEND8       / Send upper 8 bits
   71 007624* 7300          CLA CLL         / Clean up
   72 007625* 5617          JMP I SEND12    / Return to caller
-  73 007626* 0000  TSFSET, .-.             / Remeber if TFS flag was set
-  74 007627* 0000  KSFSET, .-.             / Remeber if KFS flag was set
+  73 007626* 0000  TSFSET, .-.             / Remember if TSF flag was set
+  74 007627* 0000  KSFSET, .-.             / Remember if KSF flag was set
   75               
   76 007630* 0002          7632-.          / FYI: Number of available words
   77               
@@ -100,7 +100,7 @@
  100 007640* 0353  SYSIO,  KBDMON          / Preloaded for bootstrap
  101 007641* 6002          IOF             / Turn off pesky interrupts
  102 007642* 7340          CLA CLL CMA     / Get known AC
- 103 007643* 3226          DCA TSFSET      / Set virtual TFS flag
+ 103 007643* 3226          DCA TSFSET      / Set virtual TSF flag
  104 007644* 1254          TAD BDTIME      / Initialize timer counter
  105 007645* 3336          DCA GET12
  106 007646* 6041  BDLP,   TSF             / Teleprinter flag set?
@@ -135,7 +135,7 @@
  135 007676* 7500          SMA             / Is it a JMP?
  136 007677* 5312          JMP RDWR        / No, do read or write
  137 007700* 3307          DCA FARJMP      / Yes, save the CIF CDF command
- 138 007701* 2226          ISZ TSFSET      / Leave TFS set?
+ 138 007701* 2226          ISZ TSFSET      / Leave TSF set?
  139 007702* 6042          TCF             / No
  140 007703* 6031          KSF             / Wait for the server to resend
  141 007704* 5303          JMP .-1         / the last keyboard character
@@ -209,8 +209,12 @@
      007777* 0000  
  194                                       / Zero means no file given
  195                                       / Length is always 2K words
- 196                       RELOC           / Reset relocation
- 197               $
+ 196                                       / Bits 0-7 specify the starting block
+ 197                                       / (Always a multiple of 16!)
+ 198                                       / Bit 8 is reserved
+ 199                                       / Bits 9-11 specify the unit number
+ 200                       RELOC           / Reset relocation
+ 201               $
 
 BDLP    7646
 BDTIME  7654
