@@ -450,6 +450,7 @@ int txt_ch;	/* character to be sent text mode */
               txt_ch=fgetc( txtfile );
               if( txt_ch==EOF )break;
               pdp_putch( txt_ch );	/* send the char */
+	      /* Add delay here, since some adapters don't honor CSTOPB. */
 	      usleep(1000);
 	      // for (i=-1000000; i; i++) ;
             } while( 1 );
