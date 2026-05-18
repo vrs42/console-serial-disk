@@ -15,7 +15,8 @@
 #define PDP_SP		"./ttyPDP"
 /* #define PDP_SP		"/dev/ttyUSB0" */
 
-#define PDP_BAUD	B19200
+//#define PDP_BAUD	B19200
+#define PDP_BAUD	B115200
 
 /* use CSTOPB for 2 stop bits and 0 for one */
 #define PDP_STOP	CSTOPB
@@ -435,6 +436,28 @@ int txt_ch;	/* character to be sent text mode */
             tty_reset();
             pdp_reset();
             exit(0);
+          case KEY_SH_F6:	/* send a binary file in the blind */
+
+            fprintf( stderr, "SERVER: F6 key pressed, Send a binary file\r\n" );
+
+            txtfile=fopen( "binfile", "r" );
+            if( txtfile==NULL ){
+              fprintf( stderr, "SERVER: can't open %s for reading\r\n", "binfile" );
+              break;
+            }
+
+            do {
+              txt_ch=fgetc( txtfile );
+              if( txt_ch==EOF )break;
+              pdp_putch( txt_ch );	/* send the char */
+	      usleep(1000);
+	      // for (i=-1000000; i; i++) ;
+            } while( 1 );
+
+            fprintf( stderr, "SERVER: Binary file sent\r\n" );
+            fclose( txtfile );
+            break;
+
           case KEY_F6:		/* send a text file using echo to rate limit */
 				/* fails if a line is longer than 72 chars? */
             fprintf( stderr, "SERVER: F6 key pressed, Send a text file\r\n" );
