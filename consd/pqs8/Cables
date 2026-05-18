@@ -227,8 +227,8 @@ There is a 40 pin box header on the serial controller which the BC01 or
 BC05 cable mates to. This mating is typically accomplished with the use
 of a 44 pin housing, into which female crimp connectors are inserted
 (after crimping them to conductors). The official pin-out of the header
-is confusing, because a left-handed connector with alphabetic pin names
-is used instead of the more conventional right-handed connector with
+is confusing, because a left-angle box header with alphabetic pin names
+is used instead of the more conventional right-angle box header with
 numeric pin numbers. Looking into the header, with the PCB at left, the
 pin-out of the header is:
 
@@ -366,6 +366,10 @@ then proceed on the top row, connecting each colored wire to the next pin.
 When you reach the end of the row, continue below it in the opposite
 direction. Don't attach the last (brown) wire.
 
+If this is a female DE-9, add a solder a wire shunt between pins 1 and
+6 (blue and green). It is easiest to tack this to the cup bases, rather
+than fiddle around inside the solder cups.
+
 Install the strain reliefe on the cable and assemble the DE-9 into it's
 shroud. Position the strain relief so that it will go inside the shroud
 before tightening it. The separated ends of the wires should allow you
@@ -395,3 +399,8 @@ white, blue, green, leaving 8 empty holes. For the lower row; three empty
 holes, brown, two more empty holes. Peel back the other end of the brown
 wire partway, and install it in the housing. Leave 13 holes, and install
 the black wire in the second to last hole, leaving the last hole empty.
+
+My machine also has a stress relief clamp where cables leave the machine.
+I wrapped several turns of painter's tape around the ribbon where it leaves
+the machine, to protect the ribbon and to make it thick enough for this clamp
+to grab.
