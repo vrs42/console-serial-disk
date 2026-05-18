@@ -361,7 +361,7 @@ int hndsum;	/* checksum for current CSD driver */
   patch_bt=1;	/* do the patch unless turned off */
   if( k == hndsum) {
     fprintf( stderr, "SERVER: %s appears to have the latest CSD handler\r\n", csd_name[0] );
-    patch_bt=0;	/* BUGBUG: don't need to patch the boot block */
+    patch_bt=0;	/* Don't need to patch the boot block */
   } else switch( k ) {
 #ifdef PQS8
   case 231229:	/* PQS8 DECtape handler */
@@ -425,11 +425,29 @@ int hndsum;	/* checksum for current CSD driver */
       }
   }
 
-  /* Check for a SLURP loader. */
-  if( csd_dsk[0][0100][0177] != 0 ) {
-    fprintf( stderr, "SERVER: SLURP loader detected: %05o\r\n", csd_dsk[0][0100][0177] );
-    csd_dsk[0][0100][0177]  = 0;
-    fprintf( stderr, "SERVER: SLURP loader disabled\r\n" );
+  /* Identify the version of PQS8 in question. */
+  k = csd_dsk[0][1][012]; /* Old version? */
+  if ((k>>6) != 070) k = csd_dsk[0][1][020]; /* Nope, new version */
+  k &= 077; /* Sixbit */
+  switch ( k ) {
+    case 025: /* U */
+    case 032: /* Z */
+      fprintf( stderr, "SERVER: PQS8 version %c\r\n", '@'+k);
+      /* Check for a SLURP loader. */
+      if( csd_dsk[0][0100][0177] != 0 ) {
+        fprintf( stderr, "SERVER: SLURP loader detected: %05o\r\n", csd_dsk[0][0100][0177] );
+        csd_dsk[0][0100][0177]  = 0;
+        fprintf( stderr, "SERVER: SLURP loader disabled\r\n" );
+      }
+      break;
+    case 024: /* T */
+      /* BUGBUG: Implement version dependent fixing */
+      /* Figure out SLURP for older versions */
+      fprintf( stderr, "SERVER: PQS8 version %c\r\n", '@'+k);
+      csd_dsk[0][0][040] = 02527; /* Different starting address */
+      break;
+    default:
+      fprintf( stderr, "SERVER: Unrecognized PQS8 version %c\r\n", '@'+k);
   }
 #else
 #ifdef OS8
