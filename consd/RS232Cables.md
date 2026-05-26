@@ -335,15 +335,28 @@ but they are not available in the 12" length.
 
 https://www.adafruit.com/product/3144 
 Large Dual Row Wire Housing Pack:  
-For about #4, you get quantity five of the desired 
-housings.  Unfortunately, you also get a pile of other 
-housings.  Maybe you can find a use for them.
+Unfortunately, this product no longer includes any 44 pin housings.
+You can glue a 16 pin and two 14 pin housings end-to-end to create
+the desired housing. You'll want to use a gel cyano-acrylate glue
+or similar, to avoid getting adhesive all over the working bits.
+A single line 1bout 3/4 way down the middle of one side is plenty.
+Hold the headers in the correct alignment for the count of 20 or
+so to let the glue start to set up. Be sure that all the pins
+face the same way!
+
+You can also use a flush cutter to crush/cut through a couple of
+the housing pins to customize their length before a glue-up.
+Using a flush cutter makes it easy to also neatly trim off all
+the crushed bits. The glue works best on the smoother untrimmed
+ends, though. (For example, an 18 pin housing can be cut into a
+12 pin housing and a 4 pin housing. Those can be used with a 32
+pin housing and a 40 pin housing to create two more 44 pin housings.)
 
 Note: These are not the official Amphenol successors to the original 
-Berg crimp pins. Those exist, but are quite expensive. Since they 
-are so expensive, the affordable pins are knock-offs, and are 
-notoriously mutually incompatible.  That is why we're suggesting the 
-Adafruit parts, which are affordable and known to work together.
+Berg crimp pins. Those exist, but are hard to work with.
+Unfortunately, the knock-offs are notoriously mutually incompatible.
+That is why we're suggesting the Adafruit parts, which are affordable
+and known to work together.
 
 For the other end, there is:  
 https://www.amazon.com/dp/B0B1YVK4DX  
