@@ -1,4 +1,4 @@
-*** PQS8 Commands ***
+## PQS8 Commands
 
 The following commands are built into the PQS8 monitor:
 
@@ -53,7 +53,7 @@ then each have get enumerated on the command line to describe the larger
 The special filenames "%" and "$" are allocated outside the normal TFS
 file area.  They are placed early on the drive, which can dramatically
 speed up seek times when the system device is tape.
-
+
 
 
 A number of additional "commands" are often implemented:
@@ -127,7 +127,7 @@ second lists the system catalog, which enumerates the system programs
 Often the /T (terminal) option is helpful, as many programs default to
 output on the line printer. The /N option suppresses pagination, which
 may also be helpful.
-
+
 
 
 Here is a sample command sequence to edit a file and make a modified version:
